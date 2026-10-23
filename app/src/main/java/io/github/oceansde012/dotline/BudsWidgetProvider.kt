@@ -1,4 +1,4 @@
-﻿package io.github.oceansde012.dotline
+package io.github.oceansde012.dotline
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager

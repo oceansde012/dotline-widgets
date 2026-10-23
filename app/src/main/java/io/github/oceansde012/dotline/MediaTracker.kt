@@ -39,12 +39,14 @@ class Track(
     private val position: Long,
     private val updateTime: Long,
     private val speed: Float,
+    /** STATE_PLAYING exactly: only then the position is extrapolated and the tick runs */
+    val ticking: Boolean,
     val sessionActivity: PendingIntent?,
     /** an advertisement (Spotify): title as is, no progress */
     val isAd: Boolean = false,
 ) {
     /** everything that needs a full (bitmap) update when it changes; position is not part of it */
-    val faceKey: List<Any?> = listOf(pkg, appName, title, artist, artKey, durationMs, playing, isAd)
+    val faceKey: List<Any?> = listOf(pkg, appName, title, artist, artKey, durationMs, playing, ticking, isAd)
 
     val hasPosition: Boolean get() = position >= 0
 
@@ -55,7 +57,7 @@ class Track(
     fun positionNow(): Long {
         if (position < 0) return -1
         var p = position
-        if (playing && updateTime > 0) p += ((SystemClock.elapsedRealtime() - updateTime) * speed).toLong()
+        if (ticking && updateTime > 0) p += ((SystemClock.elapsedRealtime() - updateTime) * speedOrOne()).toLong()
         if (durationMs > 0) p = p.coerceAtMost(durationMs)
         return p.coerceAtLeast(0)
     }
@@ -206,13 +208,16 @@ object MediaTracker {
                 val text = x.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
                 val art = try {
                     n.getLargeIcon()?.loadDrawable(a)?.let { drawableToBitmap(it) }
-                        ?: @Suppress("DEPRECATION") x.getParcelable<Bitmap>("android.largeIcon.big")
+                        ?: @Suppress("DEPRECATION") x.getParcelable<Bitmap>(Notification.EXTRA_LARGE_ICON_BIG)
+                        ?: @Suppress("DEPRECATION") x.getParcelable<Bitmap>(Notification.EXTRA_LARGE_ICON)
                         ?: @Suppress("DEPRECATION") x.getParcelable<Bitmap>(Notification.EXTRA_PICTURE)
                 } catch (e: Exception) {
                     Log.w(TAG, "notification art", e)
                     null
                 }
-                notifs[pkg] = NotifInfo(title, text, art ?: notifs[pkg]?.art)
+                // a new track without a cover must not keep the previous cover
+                val old = notifs[pkg]
+                notifs[pkg] = NotifInfo(title, text, art ?: old?.art?.takeIf { old.title == title })
             }
             reevaluate()
         }
@@ -221,7 +226,7 @@ object MediaTracker {
     private fun drawableToBitmap(d: android.graphics.drawable.Drawable): Bitmap? {
         val w = d.intrinsicWidth.takeIf { it > 0 } ?: 256
         val h = d.intrinsicHeight.takeIf { it > 0 } ?: 256
-        val k = minOf(1f, 512f / maxOf(w, h))
+        val k = minOf(1f, 400f / maxOf(w, h))
         val b = Bitmap.createBitmap((w * k).toInt().coerceAtLeast(1), (h * k).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
         d.setBounds(0, 0, b.width, b.height)
         d.draw(Canvas(b))
@@ -315,7 +320,7 @@ object MediaTracker {
             ?: md?.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
         if (art == null && md != null) {   // art only as a URI (Spotify): load it off the main thread
             for (key in listOf(MediaMetadata.METADATA_KEY_ALBUM_ART_URI, MediaMetadata.METADATA_KEY_ART_URI, MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)) {
-                val u = nonBlank(md.getString(key)) ?: continue
+                val u = ArtLoader.toFetchable(nonBlank(md.getString(key)) ?: continue)
                 art = ArtLoader.cached(u)
                 if (art != null) break
                 ArtLoader.request(ctx, u) { main.post { reevaluate() } }
@@ -324,7 +329,8 @@ object MediaTracker {
         if (art == null) art = n?.art   // last resort: the large icon of the media notification
         val duration = md?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
         val playing = isPlayingState(ps?.state)
-        val ad = pkg == SPOTIFY && (title.equals("Advertisement", true) || artist.isEmpty() || duration <= 0)
+        // the framework has no advertisement flag in MediaMetadata: Spotify marks ads by title / missing length
+        val ad = pkg == SPOTIFY && (title.equals("Advertisement", true) || (artist.isEmpty() && duration <= 0))
         return Track(
             pkg = pkg,
             appName = appName,
@@ -337,6 +343,7 @@ object MediaTracker {
             position = ps?.position ?: -1L,
             updateTime = ps?.lastPositionUpdateTime ?: 0L,
             speed = ps?.playbackSpeed ?: 1f,
+            ticking = ps?.state == PlaybackState.STATE_PLAYING,
             sessionActivity = c.sessionActivity,
             isAd = ad,
         )
@@ -406,7 +413,7 @@ object MediaTracker {
     private fun scheduleTick() {
         main.removeCallbacks(tick)
         val t = track ?: return
-        if (!t.playing || !screenOn || !t.showProgress) return
+        if (!t.ticking || !screenOn || !t.showProgress) return
         val pos = t.positionNow()
         val delay = ((1000 - pos % 1000) / t.speedOrOne()).toLong() + 20
         main.postDelayed(tick, delay.coerceIn(250L, 1500L))

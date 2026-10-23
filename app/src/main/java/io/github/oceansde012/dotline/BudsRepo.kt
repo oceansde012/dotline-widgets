@@ -1,4 +1,4 @@
-﻿package io.github.oceansde012.dotline
+package io.github.oceansde012.dotline
 
 import android.Manifest
 import android.bluetooth.BluetoothA2dp
