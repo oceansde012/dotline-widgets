@@ -4,6 +4,7 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- Buds: the earbud picture now comes from the Nothing X app on your phone for Nothing Ear, Ear (1), Ear (2), Ear (stick) and Ear (a); the widget shows the device's real name instead of the name you gave it; car kits are no longer treated as earbuds. Separate left / right / case battery is only available to system apps, so the widget shows the overall level.
 - Widget labels are now drawn by the app in IBM Plex Mono, so they look right on Samsung One UI too, where the launcher used to replace the font.
 - Head shows the next alarm on the right, or "no alarm" when there is none.
 - Weather shows no number at all until a city is chosen. Buds and Weather texts no longer get cut off; Ukrainian texts use one informal tone.

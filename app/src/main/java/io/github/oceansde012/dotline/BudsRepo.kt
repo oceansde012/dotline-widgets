@@ -440,7 +440,7 @@ object BudsRepo {
         if (b.address.isEmpty()) return BudsPic(null, "ILLUSTRATION", "none")
         val h = hash(b.address)
         load(File(dir(a), "${h}_user.png"))?.let { return BudsPic(it, "USER", "user$h") }
-        load(File(dir(a), "${h}_auto.png"))?.let { return BudsPic(it, srcPref(a).getString("src_$h", "AUTO") ?: "AUTO", "auto$h") }
+        load(File(dir(a), "${h}_$AUTO_FILE"))?.let { return BudsPic(it, srcPref(a).getString("src_$h", "AUTO") ?: "AUTO", "auto$h") }
         return BudsPic(null, "ILLUSTRATION", "none")
     }
 
@@ -478,7 +478,8 @@ object BudsRepo {
 
     private fun resolve(a: Context, b: Buds, h: String) {
         val notes = StringBuilder()
-        val auto = File(dir(a), "${h}_auto.png")
+        val auto = File(dir(a), "${h}_$AUTO_FILE")
+        File(dir(a), "${h}_auto.png").delete()   // v1 cache: Nothing X pictures could be saved upscaled
         // 0 Nothing X resources
         val model = b.model.ifBlank { b.name }
         var src: String? = null
@@ -543,6 +544,8 @@ object BudsRepo {
         "nothing ear" to "ear_three",
     )
     private const val MAX_PAIR = 400
+    /** resolved picture cache; bump the suffix when the resolver output changes so old files are not reused */
+    private const val AUTO_FILE = "auto2.png"
 
     private fun nothingXPrefix(model: String): String? = NX_PREFIX[model.trim().lowercase(Locale.ROOT)]
 
@@ -550,13 +553,15 @@ object BudsRepo {
         val id = res.getIdentifier(name, "drawable", pkg)
         if (id == 0) return null
         val o = BitmapFactory.Options().apply { inScaled = false }
-        BitmapFactory.decodeResource(res, id, o)?.let { return it }
+        // Nothing X keeps these in res/drawable (160 dpi); without DENSITY_NONE drawBitmap would upscale them 3x
+        BitmapFactory.decodeResource(res, id, o)?.let { it.density = Bitmap.DENSITY_NONE; return it }
         val d = res.getDrawable(id, null) ?: return null
         val w = d.intrinsicWidth.takeIf { it > 0 } ?: return null
         val h = d.intrinsicHeight.takeIf { it > 0 } ?: return null
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         d.setBounds(0, 0, w, h)
         d.draw(Canvas(bmp))
+        bmp.density = Bitmap.DENSITY_NONE
         return bmp
     }
 
