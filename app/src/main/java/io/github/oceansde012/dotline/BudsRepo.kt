@@ -279,11 +279,23 @@ object BudsRepo {
         if (cls == null) return metaBattery(d, META_LEFT_BATTERY) >= 0 || metaBattery(d, META_RIGHT_BATTERY) >= 0
         if (cls.majorDeviceClass != BluetoothClass.Device.Major.AUDIO_VIDEO) return false
         return when (cls.deviceClass) {
-            BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES, BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET,
-            BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE, BluetoothClass.Device.AUDIO_VIDEO_UNCATEGORIZED,
-            BluetoothClass.Device.AUDIO_VIDEO_PORTABLE_AUDIO -> true
-            else -> false   // car audio, loudspeaker, set-top box, video ...
+            BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES, BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET -> true
+            BluetoothClass.Device.AUDIO_VIDEO_UNCATEGORIZED ->
+                metaBattery(d, META_LEFT_BATTERY) >= 0 || metaBattery(d, META_RIGHT_BATTERY) >= 0 ||
+                    metaBattery(d, META_MAIN_BATTERY) >= 0 || deviceBattery(d) >= 0
+            else -> false   // hands-free car kits, car audio, loudspeaker, hi-fi, portable audio, set-top box, video ...
         }
+    }
+
+    /**
+     * The real Bluetooth name of the device. The user-chosen alias is never shown (it is cut off in the widget and
+     * may carry the owner's name); it is only a fallback, without a prefix up to the first ": ".
+     */
+    private fun displayName(d: BluetoothDevice): String = try {
+        d.name?.takeIf { it.isNotBlank() }
+            ?: d.alias?.let { if (": " in it) it.substringAfter(": ") else it }.orEmpty()
+    } catch (e: Exception) {   // SecurityException without BLUETOOTH_CONNECT
+        ""
     }
 
     /** picks the device that reports batteries (earbuds) over e.g. a car kit, and reads them */
@@ -292,11 +304,7 @@ object BudsRepo {
         if (audio.isEmpty()) return Buds.disconnected(last)
         var best: Buds? = null
         for (d in audio) {
-            val name = try {
-                d.alias ?: d.name ?: ""
-            } catch (e: Exception) {   // SecurityException without BLUETOOTH_CONNECT
-                ""
-            }
+            val name = displayName(d)
             val address = try { d.address } catch (e: Exception) { continue }
             val l = metaBattery(d, META_LEFT_BATTERY)
             val r = metaBattery(d, META_RIGHT_BATTERY)
@@ -419,8 +427,8 @@ object BudsRepo {
 
     private fun load(f: File): Bitmap? = if (f.exists()) try { BitmapFactory.decodeFile(f.path) } catch (e: Exception) { null } else null
 
-    private fun save(f: File, src: Bitmap) {
-        val k = minOf(1f, MAX_PIC.toFloat() / maxOf(src.width, src.height))
+    private fun save(f: File, src: Bitmap, maxSide: Int = MAX_PIC) {
+        val k = minOf(1f, maxSide.toFloat() / maxOf(src.width, src.height))
         val b = if (k < 1f) Bitmap.createScaledBitmap(src, (src.width * k).toInt().coerceAtLeast(1), (src.height * k).toInt().coerceAtLeast(1), true) else src
         f.outputStream().use { b.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
@@ -473,10 +481,20 @@ object BudsRepo {
         val auto = File(dir(a), "${h}_auto.png")
         // 0 Nothing X resources
         val model = b.model.ifBlank { b.name }
-        val scan = scanNothingX(a, model)
-        notes.append("NothingX pkgs=${scan.packages.size} candidates=${scan.all.size} picked=${scan.picked?.name ?: "none"}")
         var src: String? = null
-        scan.picked?.let { c ->
+        val prefix = nothingXPrefix(model)
+        val pair = if (prefix != null) {
+            try { nothingXPair(a, prefix) } catch (e: Throwable) { null }
+        } else null
+        val scan = if (pair == null) scanNothingX(a, model) else NxScan(nothingXPackages(a), emptyList(), null)
+        if (pair != null) {
+            notes.append("NothingX pkgs=${scan.packages.size} table=$prefix picked=${pair.second}")
+            save(auto, pair.first, MAX_PAIR); src = "NOTHING_X"
+        } else {
+            notes.append("NothingX pkgs=${scan.packages.size} ")
+            if (prefix != null) notes.append("table=$prefix picked=none") else notes.append("candidates=${scan.all.size} picked=${scan.picked?.name ?: "none"}")
+        }
+        scan.picked?.takeIf { src == null }?.let { c ->
             decodeCand(a, c, MAX_PIC)?.let { save(auto, it); src = "NOTHING_X"; notes.append(" -> ${c.type}/${c.name} ${c.w}x${c.h}") }
         }
         // 1 Android metadata icons
@@ -515,6 +533,62 @@ object BudsRepo {
     }
 
     private fun scheme(u: String?) = if (u == null) "none" else (android.net.Uri.parse(u).scheme ?: "?")
+
+    // Nothing X names its images by code name: Bluetooth name (lower case) -> drawable prefix
+    private val NX_PREFIX = mapOf(
+        "nothing ear (1)" to "ear_one",
+        "nothing ear (2)" to "ear_two",
+        "nothing ear (stick)" to "ear_stick",
+        "nothing ear (a)" to "ear_color",
+        "nothing ear" to "ear_three",
+    )
+    private const val MAX_PAIR = 400
+
+    private fun nothingXPrefix(model: String): String? = NX_PREFIX[model.trim().lowercase(Locale.ROOT)]
+
+    private fun nxBitmap(res: android.content.res.Resources, name: String, pkg: String): Bitmap? {
+        val id = res.getIdentifier(name, "drawable", pkg)
+        if (id == 0) return null
+        val o = BitmapFactory.Options().apply { inScaled = false }
+        BitmapFactory.decodeResource(res, id, o)?.let { return it }
+        val d = res.getDrawable(id, null) ?: return null
+        val w = d.intrinsicWidth.takeIf { it > 0 } ?: return null
+        val h = d.intrinsicHeight.takeIf { it > 0 } ?: return null
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        d.setBounds(0, 0, w, h)
+        d.draw(Canvas(bmp))
+        return bmp
+    }
+
+    /** left + right earbud of [prefix] read from the installed Nothing X app (black, else white, else no colour); null if absent */
+    private fun nothingXPair(a: Context, prefix: String): Pair<Bitmap, String>? {
+        for (p in nothingXPackages(a)) {
+            val res = try { a.packageManager.getResourcesForApplication(p) } catch (e: Exception) { continue }
+            for (color in listOf("_black", "_white", "")) {
+                val base = prefix + color
+                val l = try { nxBitmap(res, base + "_left", p) } catch (e: Exception) { null }
+                val r = try { nxBitmap(res, base + "_right", p) } catch (e: Exception) { null }
+                if (l == null || r == null) continue
+                val pair = overlap(l, r) ?: continue
+                return pair to base
+            }
+        }
+        return null
+    }
+
+    /** left and right side by side on a transparent background, the right one slightly over the left; longest side <= [MAX_PAIR] */
+    private fun overlap(l: Bitmap, r: Bitmap): Bitmap? {
+        val h = maxOf(l.height, r.height)
+        val shift = (l.width * 0.85f).toInt()
+        val w = shift + r.width
+        val k = minOf(1f, MAX_PAIR.toFloat() / maxOf(w, h))
+        val out = Bitmap.createBitmap((w * k).toInt().coerceAtLeast(1), (h * k).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        val c = Canvas(out)
+        c.scale(k, k)
+        c.drawBitmap(l, 0f, (h - l.height) / 2f, null)
+        c.drawBitmap(r, shift.toFloat(), (h - r.height) / 2f, null)
+        return out
+    }
 
     private fun sideBySide(l: Bitmap?, r: Bitmap?): Bitmap? {
         if (l == null || r == null) return l ?: r
@@ -633,7 +707,7 @@ object BudsRepo {
         out.add("metadata: ${if (getMetadataMethod == null || metadataBlocked != null) "blocked (${metadataBlocked ?: "?"})" else "available"}")
         for (d in bonded.take(8)) {
             val conn = isConnected(d)
-            val nm = try { d.alias ?: d.name ?: "?" } catch (e: Exception) { "?" }
+            val nm = displayName(d).ifBlank { "?" }
             val keys = listOf("L" to META_LEFT_BATTERY, "R" to META_RIGHT_BATTERY, "case" to META_CASE_BATTERY)
                 .joinToString(" ") { "${it.first}=${metaBattery(d, it.second).let { v -> if (v < 0) "-" else v.toString() }}" }
             val gb = deviceBattery(d).let { if (it < 0) "-" else it.toString() }
