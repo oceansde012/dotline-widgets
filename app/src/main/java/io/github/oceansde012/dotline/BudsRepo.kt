@@ -88,8 +88,12 @@ object BudsRepo {
     private const val META_LEFT_BATTERY = 10
     private const val META_RIGHT_BATTERY = 11
     private const val META_CASE_BATTERY = 12
+    private const val META_CASE_ICON = 9
+    private const val META_MAIN_BATTERY = 18
+    private const val POLL_MS = 60_000L
+    private const val FRESH_MS = 10 * 60_000L
 
-    private val NOTHING_X = listOf("com.nothing.smartcenter", "com.nothing.hearthstone")
+    private val NOTHING_X = listOf("com.nothing.smartcenter", "com.nothing.hearthstone", "com.nothing.ear", "com.nothing.nothingx", "com.nothingtech.ear")
     private const val GALAXY_WEARABLE = "com.samsung.android.app.watchmanager"
 
     private val main = Handler(Looper.getMainLooper())
@@ -112,7 +116,7 @@ object BudsRepo {
         val dev = sp.getString(K_DEV, null)?.split('|')
         val known = if (dev != null && dev.size >= 3) Buds(true, false, dev[0], -1, -1, -1, -1, dev[1], dev[2], dev.getOrNull(3)?.ifBlank { null }) else null
         val s = sp.getString(K_LAST, null)
-        val parsed = s?.split('|')?.takeIf { it.size == 5 }?.let {
+        val parsed = s?.split('|')?.takeIf { it.size == 6 && System.currentTimeMillis() - (it[5].toLongOrNull() ?: 0L) < FRESH_MS }?.let {
             try {
                 Buds(true, true, it[0], it[1].toInt(), it[2].toInt(), it[3].toInt(), it[4].toInt(), known?.address ?: "", known?.model ?: "", known?.companion)
             } catch (e: Exception) {
@@ -125,7 +129,7 @@ object BudsRepo {
 
     private fun store(ctx: Context, b: Buds) {
         last = b
-        val v = if (b.connected) "${b.name.replace('|', ' ')}|${b.left}|${b.right}|${b.case}|${b.single}" else null
+        val v = if (b.connected) "${b.name.replace('|', ' ')}|${b.left}|${b.right}|${b.case}|${b.single}|${System.currentTimeMillis()}" else null
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply {
             if (v == null) remove(K_LAST) else putString(K_LAST, v)
             if (b.connected && b.address.isNotEmpty()) {
@@ -598,4 +602,5 @@ object BudsRepo {
         return out
     }
 }
+
 
