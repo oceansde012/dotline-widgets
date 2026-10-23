@@ -111,11 +111,11 @@ object PlayerArt {
         dotPaint.color = if (idle) Nd.CHIP else Nd.FG
         c.drawCircle(playCx, cy, g.zone * 0.42f, dotPaint)
         dotPaint.color = if (idle) Nd.FG else Color.BLACK
-        Glyphs.draw(c, if (playing) Glyphs.PAUSE else Glyphs.PLAY, playCx, cy, g.zone * 0.46f, dotPaint)
+        Glyphs.draw(c, if (playing) Glyphs.PAUSE else Glyphs.PLAY, playCx, cy, g.zone * 0.44f, dotPaint)
         if (!idle) {
             dotPaint.color = Nd.FG
-            Glyphs.draw(c, Glyphs.PREV, g.zone / 2f, cy, g.zone * 0.54f, dotPaint)
-            Glyphs.draw(c, Glyphs.NEXT, g.clusterW - g.zone / 2f, cy, g.zone * 0.54f, dotPaint)
+            Glyphs.draw(c, Glyphs.PREV, g.zone / 2f, cy, g.zone * 0.56f, dotPaint)
+            Glyphs.draw(c, Glyphs.NEXT, g.clusterW - g.zone / 2f, cy, g.zone * 0.56f, dotPaint)
         }
         return bmp
     }

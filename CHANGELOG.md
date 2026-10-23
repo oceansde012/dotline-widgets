@@ -4,6 +4,7 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- Player: bolder controls, drawn as solid dot shapes (play, pause, previous, next) instead of thin outlines.
 - Buds: separate left / right / case battery for Nothing earbuds, asked directly from the earbuds over the same Bluetooth service the Nothing X app uses (read-only battery request; the case is reported while the earbuds are in it).
 - Head: the middle shows this month as day dots (past days grey, today red).
 - Buds: Nothing X earbuds are drawn white by default with a small gap between them; Android does not tell apps the colour, so the app has a COLOUR button to switch to black.
