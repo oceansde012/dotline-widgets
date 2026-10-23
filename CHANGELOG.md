@@ -4,6 +4,7 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- Player: when several players are paused, the widget shows the one you played last. Buds: long earbud names wrap to two lines instead of overlapping the battery.
 - Buds: the earbud picture now comes from the Nothing X app on your phone for Nothing Ear, Ear (1), Ear (2), Ear (stick) and Ear (a); the widget shows the device's real name instead of the name you gave it; car kits are no longer treated as earbuds. Separate left / right / case battery is only available to system apps, so the widget shows the overall level.
 - Widget labels are now drawn by the app in IBM Plex Mono, so they look right on Samsung One UI too, where the launcher used to replace the font.
 - Head shows the next alarm on the right, or "no alarm" when there is none.
