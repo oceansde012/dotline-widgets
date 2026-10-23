@@ -4,6 +4,7 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- Fixed: the app crashed on open on Android 14 and newer. If something ever goes wrong again, the next start shows what happened with a Copy button.
 - True dot-matrix numerals: the clock, temperature, battery level and the date are drawn by the app as round dots, so they look the same on every phone. The clock still ticks every minute.
 - New label font with Cyrillic support (IBM Plex Mono), so Ukrainian labels no longer look mismatched.
 - Fixed: the battery widget could show an old value; it now reads the live battery every time. Widgets no longer show sample values before they have real data.
