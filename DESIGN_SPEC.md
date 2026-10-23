@@ -1,4 +1,4 @@
-# Dotline Widgets — design spec
+﻿# Dotline Widgets — design spec
 
 Target: a modern Android phone (reference: One UI home, 5-column grid, ~411dp wide, black wallpaper).
 Goal: six native widgets (Head, Time, Weather, Player, Power, Buds) that are calm, legible, consistent and never show stale state.
@@ -7,8 +7,8 @@ Goal: six native widgets (Head, Time, Weather, Player, Power, Buds) that are cal
 
 | Token | Value | Use |
 |---|---|---|
-| `bg_tile` | `#141416` | every widget tile (one surface, no translucency) |
-| `stroke_tile` | `#222225`, 1dp | tile hairline, so tiles read on any wallpaper |
+| `bg_tile` | `#101012` | every widget tile (one surface, no translucency) |
+| `stroke_tile` | `#34343A`, 1.5dp | tile outline + a 1dp top highlight (`#FFFFFF` 6%) so tiles read as objects |
 | `fg` | `#F2F2F2` | primary text, lit dots, glyphs |
 | `dim` | `#8E8E93` | secondary text |
 | `faint` | `#4A4A4E` | labels on idle, unlit text |
@@ -21,8 +21,8 @@ Padding: `P = 16dp` on all sides for every widget (scaled `min(16dp, 0.14 × H)`
 Tile fills the whole cell area minus the launcher padding; no internal margins (removes the misaligned-left-edges bug).
 
 Typography (3 roles only):
-- **Hero** — `hero` (Doto, dot-matrix, OFL): clock digits, temperature, battery %, earbud %. One hero per widget.
-- **Label** — `space_mono_regular` (OFL, add to `res/font`), ALL CAPS, letter-spacing 0.08em, 11–13sp: dates, conditions, status lines, units.
+- **Hero** — `DotText`: our own 5x7 dot glyph set drawn on a canvas (no font): clock, temperature, battery %, earbud %, day number. Lit dots `#F2F2F2`, unlit matrix `#2C2C2F` at 60%, dot = 0.62 of the pitch.
+- **Label** — `label_regular` / `label_medium` (IBM Plex Mono, OFL, Latin + Cyrillic), ALL CAPS, letter-spacing 0.08em, 11–13sp: dates, conditions, status lines, units.
 - **Title** — system `sans-serif-medium`: track title only (needs full Unicode/Cyrillic); artist in `sans-serif` dim.
 
 ## 2. Widgets
@@ -102,4 +102,15 @@ Single scroll, black `#000`, same tokens.
 - Every bitmap ≤ 300 KB, whole RemoteViews parcel ≤ 500 KB.
 - Each provider `previewLayout` so the widget picker shows the real design.
 - All sizes derived from real widget size (`WidgetSize.of`) on add/resize.
-- Fonts: only OFL fonts are bundled: Doto (hero) and Space Mono (labels); licence texts live in `assets/licenses/`.
+- Fonts: only OFL fonts are bundled: IBM Plex Mono (labels); licence texts live in `assets/licenses/`.
+
+## 6. Redesign v3 summary
+- Numerals are bitmaps from DotText (glyphs: 0-9, A-Z, : . , - + % / ! ? ( ) ' _ = ° ·, a bell; Cyrillic only in label text). Bitmaps are sized to the view, cached by text/size/colour, each <= ~340 KB.
+- Clock: HH over mm (or one row, whichever gives larger dots), minute tick from a runtime ACTION_TIME_TICK receiver plus an AlarmManager alarm at the next minute boundary (re-armed on every render).
+- Head: day number in dots, weekday over month in the label font, bell + alarm on the right.
+- Weather: icon top-left, temperature fills the middle, condition and H/L at the bottom.
+- Power: dot 81 + %, 10-dot bar (dot ~8 dp) with the status line on the same top/bottom lines as the numerals.
+- Player: playing = title block top, progress group centred, controls bottom (one grid); idle = compact centred row; no notification access = Allow access face.
+- Faces never show sample data: initialLayout is an empty tile, previews on Android 15+ are rendered by the same code (setWidgetPreview).
+- Diagnostics card in the app (Diagnostics.register for extra sections), taps via Taps with fallbacks.
+

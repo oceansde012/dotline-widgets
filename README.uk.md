@@ -1,4 +1,4 @@
-# Dotline Widgets
+﻿# Dotline Widgets
 
 **Спокійні крапкові віджети для головного екрана Android. Шість нативних віджетів, без акаунта, реклами та аналітики.**
 
@@ -35,4 +35,4 @@ Obtainium: додати `https://github.com/oceansde012/dotline-widgets`.
 
 ## Ліцензії
 
-Код: MIT. Шрифти Space Mono і Doto: SIL OFL 1.1. Погода: Open-Meteo.com.
+Код: MIT. Шрифт IBM Plex Mono: SIL OFL 1.1 (точкові цифри малює сам застосунок). Погода: Open-Meteo.com.

@@ -1,4 +1,4 @@
-# Dotline Widgets
+﻿# Dotline Widgets
 
 **Calm dot-matrix home screen widgets for Android. Six native widgets, no account, no ads, no analytics.**
 
@@ -104,9 +104,9 @@ Keep the keystore somewhere safe and never commit it. All releases must be signe
 ## Credits and licences
 
 - Weather data by [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
-- Fonts, both under the SIL Open Font License 1.1 (texts in `app/src/main/assets/licenses/`):
-  - [Space Mono](https://github.com/googlefonts/spacemono) for labels;
-  - [Doto](https://github.com/oliverlalan/Doto) for the dot-matrix hero numbers.
+- Font under the SIL Open Font License 1.1 (texts in `app/src/main/assets/licenses/`):
+  - [IBM Plex Mono](https://github.com/IBM/plex) (Regular and Medium) for labels, it covers Latin and Cyrillic.
+  - The dot-matrix numerals are drawn by the app itself, no font is involved.
 - Code: [MIT](LICENSE) (c) 2026 oceansde012.
 
 This project ships only open-licensed fonts and its own artwork.
