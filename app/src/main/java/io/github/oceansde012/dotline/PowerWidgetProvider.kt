@@ -136,12 +136,13 @@ class PowerWidgetProvider : AppWidgetProvider() {
         val pitchN = DotText.pitchFor(text, 0.36f * w, hc)
         val num = DotText.art(text, pitchN, density, if (low) Nd.ACCENT else Nd.FG)
         rv.putArt(R.id.num, num)
+        rv.setContentDescription(R.id.num, "$text%")
         val numTop = top + hc - num.hDp   // numerals stand on the bottom line
         rv.margins(R.id.num, start = pad + 2f, top = numTop)
-        val unit = (0.2f * h).coerceIn(10f, 13f)
-        rv.setTextViewTextSize(R.id.unit, DIP, unit)
-        val unitW = unit * 0.7f + 2f
-        rv.place(R.id.unit, pad + 2f + num.wDp + 4f, top + hc - 16f, unitW + 4f, 16f)
+        val unitSize = (0.2f * h).coerceIn(10f, 13f)
+        val unit = rv.label(ctx, R.id.unit, "%", unitSize, Nd.DIM, 30f)
+        val unitW = unit.wDp
+        rv.margins(R.id.unit, start = pad + 2f + num.wDp + 4f, top = top + hc - unit.hDp)
 
         val x0 = pad + 2f + num.wDp + 4f + unitW + 14f
         val colW = (w - pad - 2f - x0).coerceAtLeast(50f)
@@ -155,12 +156,10 @@ class PowerWidgetProvider : AppWidgetProvider() {
         // status line under the bar, bottom aligned with the numerals
         val statusH = (hc - pitchB - 4f).coerceAtLeast(12f)
         val size = (statusH * 0.8f).coerceIn(9f, 11.5f)
-        rv.setTextViewTextSize(R.id.status, DIP, size)
         val maxChars = (colW / (size * 0.64f)).toInt()
-        rv.setTextViewText(R.id.status, statusText(ctx, s, maxChars))
-        rv.place(R.id.status, x0, top + hc - statusH, colW, statusH)
         val hot = !s.charging && !s.full && s.tempC > HOT_C && !low
-        rv.setTextColor(R.id.status, if (hot) Nd.ACCENT else Nd.DIM)
+        val st = rv.label(ctx, R.id.status, statusText(ctx, s, maxChars), size, if (hot) Nd.ACCENT else Nd.DIM, colW, minSizeDp = 8.5f)
+        rv.margins(R.id.status, start = x0, top = top + hc - st.hDp)
 
         rv.setOnClickPendingIntent(R.id.zone, Taps.battery(ctx))
         return rv

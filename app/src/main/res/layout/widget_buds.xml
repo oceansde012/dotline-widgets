@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!-- Buds 2x1 (DESIGN_SPEC.md 2.6): earbuds picture on a plate left; right: model name, L / R dot-matrix readouts,
      case level. BudsWidgetProvider positions everything from the real size; the defaults only fill the picker
      preview on Android < 15. -->
@@ -35,21 +35,14 @@
         android:scaleType="fitXY"
         android:visibility="gone" />
 
-    <TextView
+    <ImageView
         android:id="@+id/name"
-        android:layout_width="60dp"
-        android:layout_height="12dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_marginStart="82dp"
         android:layout_marginTop="10dp"
-        android:ellipsize="end"
-        android:fontFamily="@font/label_medium"
-        android:includeFontPadding="false"
-        android:letterSpacing="0.02"
-        android:maxLines="1"
-        android:text="NOTHING EAR (3)"
-        android:textColor="@color/nd_fg"
-        android:textSize="9.5dp" />
+        android:scaleType="fitXY" />
 
     <ImageView
         android:id="@+id/read_l"
@@ -73,21 +66,14 @@
         android:scaleType="fitXY"
         android:visibility="gone" />
 
-    <TextView
+    <ImageView
         android:id="@+id/sub"
-        android:layout_width="60dp"
-        android:layout_height="12dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_marginStart="82dp"
         android:layout_marginTop="42dp"
-        android:ellipsize="end"
-        android:fontFamily="@font/label_regular"
-        android:includeFontPadding="false"
-        android:letterSpacing="0.02"
-        android:maxLines="1"
-        android:text="CASE 40"
-        android:textColor="@color/nd_dim"
-        android:textSize="9.5dp" />
+        android:scaleType="fitXY" />
 
     <ImageView
         android:id="@+id/zone"

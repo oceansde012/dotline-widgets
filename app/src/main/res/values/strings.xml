@@ -7,6 +7,8 @@
     <string name="head_widget_label">Dotline Head</string>
     <string name="head_widget_desc">Date and next alarm in one line</string>
     <string name="alarm_fmt">ALARM %s</string>
+    <string name="head_alarm">Alarm</string>
+    <string name="head_no_alarm">No alarm</string>
     <string name="cd_open_calendar">Open calendar</string>
     <string name="cd_open_alarms">Open alarms</string>
     <string name="player_widget_desc">Cover, track, progress and controls of the current player</string>
@@ -31,7 +33,7 @@
     <string name="cd_open_weather">Open weather</string>
     <string name="cd_open_battery">Open battery usage</string>
     <string name="cd_open_bluetooth">Open Bluetooth settings</string>
-    <string name="wx_set_city">Set city</string>
+    <string name="wx_set_city">Choose city</string>
     <string name="wx_no_data">NO DATA</string>
     <string name="wx_updated">UPDATED %s</string>
     <string name="wx_rain_now">RAIN NOW</string>
@@ -56,7 +58,7 @@
     <string name="power_on_battery">ON BATTERY</string>
     <string name="power_h_m">%1$dH %2$02dM</string>
     <string name="power_m">%dM</string>
-    <string name="buds_allow">Allow Bluetooth</string>
+    <string name="buds_allow">Bluetooth</string>
     <string name="buds_not_connected">Not connected</string>
     <string name="buds_connected">Connected</string>
     <string name="buds_case">CASE %d</string>
@@ -142,10 +144,10 @@
     <string name="player_allow">Allow access</string>
     <string name="player_allow_hint">Notification access is off</string>
     <string name="player_idle_hint">Play something to see it here</string>
-    <string name="wx_set_city_hint">Tap to choose a city</string>
-    <string name="buds_allow_hint">Tap to allow</string>
+    <string name="wx_set_city_hint">Tap to choose</string>
+    <string name="buds_allow_hint">Allow access</string>
     <string name="buds_none">No earbuds</string>
-    <string name="buds_none_hint">Connect in Bluetooth</string>
+    <string name="buds_none_hint">Connect</string>
     <string name="buds_picture_title">EARBUDS PICTURE</string>
     <string name="buds_picture_none">No earbuds connected yet</string>
     <string name="buds_picture_for">%1$s · PICTURE: %2$s</string>
