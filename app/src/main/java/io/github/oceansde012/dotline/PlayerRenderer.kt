@@ -111,7 +111,7 @@ object PlayerRenderer {
         if (!t.showProgress) return
         val pos = t.positionNow()
         // the Chronometer keeps counting by itself when a partial update is throttled by the launcher
-        rv.setChronometer(R.id.elapsed, SystemClock.elapsedRealtime() - pos, "%s", t.playing)
+        rv.setChronometer(R.id.elapsed, SystemClock.elapsedRealtime() - pos, "%s", t.ticking)
         rv.setImageViewBitmap(R.id.bar, PlayerArt.bar(pos.toFloat() / t.durationMs))
         rv.setTextViewText(
             R.id.remaining,

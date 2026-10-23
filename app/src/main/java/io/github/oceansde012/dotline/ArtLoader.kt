@@ -16,10 +16,12 @@ import java.util.concurrent.Executors
  */
 object ArtLoader {
     private const val TAG = "NdArt"
-    private const val MAX_SIDE = 640
+    private const val MAX_SIDE = 400          // the cover on the widget is <= 272 px; keeps the cache small
+    private const val MAX_BYTES = 6_000_000
+    private const val RETRY_MS = 60_000L
     private val io = Executors.newFixedThreadPool(2)
     private val cache = LruCache<String, Bitmap>(10)
-    private val failed = HashSet<String>()
+    private val failed = HashMap<String, Long>()   // uri -> failure time, retried after RETRY_MS
     private val pending = HashSet<String>()
     /** last failure text per scheme, for the diagnostics card */
     @Volatile var lastError: String = ""
@@ -30,20 +32,23 @@ object ArtLoader {
     /** starts a load unless cached / running / already failed; [onLoaded] runs on the loader thread */
     @Synchronized
     fun request(ctx: Context, uri: String, onLoaded: () -> Unit) {
-        if (cache.get(uri) != null || uri in pending || uri in failed) return
+        if (cache.get(uri) != null || uri in pending) return
+        val failedAt = failed[uri]
+        if (failedAt != null && android.os.SystemClock.elapsedRealtime() - failedAt < RETRY_MS) return
+        failed.remove(uri)
         pending.add(uri)
         val a = ctx.applicationContext
         io.execute {
             val bmp = try {
                 decode(a, uri)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {   // incl. OutOfMemoryError on a huge image
                 lastError = "${Uri.parse(uri).scheme}: ${e.javaClass.simpleName} ${e.message ?: ""}".take(120)
                 Log.w(TAG, "art load failed (${Uri.parse(uri).scheme})", e)
                 null
             }
             synchronized(this) {
                 pending.remove(uri)
-                if (bmp != null) cache.put(uri, bmp) else failed.add(uri)
+                if (bmp != null) cache.put(uri, bmp) else failed[uri] = android.os.SystemClock.elapsedRealtime()
             }
             if (bmp != null) onLoaded()
         }
@@ -51,28 +56,53 @@ object ArtLoader {
 
     /** blocking: also used by the earbuds image chain */
     fun decode(ctx: Context, uri: String): Bitmap? {
-        val u = Uri.parse(uri)
+        val u = Uri.parse(toFetchable(uri))
         fun open(): java.io.InputStream? = when (u.scheme) {
             "content", "file", "android.resource" -> ctx.contentResolver.openInputStream(u)
             "https" -> {
-                val c = URL(uri).openConnection() as HttpURLConnection
+                val c = URL(u.toString()).openConnection() as HttpURLConnection
                 c.connectTimeout = 8000
                 c.readTimeout = 8000
-                if (c.responseCode != 200) throw java.io.IOException("HTTP ${c.responseCode}")
+                if (c.responseCode != 200) {
+                    c.disconnect()
+                    throw java.io.IOException("HTTP ${c.responseCode}")
+                }
                 c.inputStream
             }
             else -> throw java.io.IOException("unsupported scheme ${u.scheme}")
         }
-        val bytes = open()?.use { it.readBytes() } ?: return null
+        val bytes = open()?.use { readLimited(it) } ?: return null
         return decodeBytes(bytes)
     }
 
+    /** Spotify exposes covers as `spotify:image:<id>`; the picture itself lives on its image CDN */
+    fun toFetchable(uri: String): String =
+        if (uri.startsWith("spotify:image:")) "https://i.scdn.co/image/" + uri.removePrefix("spotify:image:") else uri
+
+    private fun readLimited(s: java.io.InputStream): ByteArray {
+        val out = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(16 * 1024)
+        while (true) {
+            val n = s.read(buf)
+            if (n < 0) break
+            out.write(buf, 0, n)
+            if (out.size() > MAX_BYTES) throw java.io.IOException("image too large")
+        }
+        return out.toByteArray()
+    }
+
+    /** decodes at most ~MAX_SIDE on the short side, so a cached bitmap stays small */
     fun decodeBytes(bytes: ByteArray): Bitmap? {
         val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, o)
         var s = 1
         while (o.outWidth / (s * 2) >= MAX_SIDE && o.outHeight / (s * 2) >= MAX_SIDE) s *= 2
         val o2 = BitmapFactory.Options().apply { inSampleSize = s }
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, o2)
+        val b = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, o2) ?: return null
+        val short = minOf(b.width, b.height)
+        if (short <= MAX_SIDE) return b
+        val k = MAX_SIDE.toFloat() / short
+        return Bitmap.createScaledBitmap(b, (b.width * k).toInt().coerceAtLeast(1), (b.height * k).toInt().coerceAtLeast(1), true)
+            .also { if (it !== b) b.recycle() }
     }
 }
