@@ -1,4 +1,4 @@
-﻿package io.github.oceansde012.dotline
+package io.github.oceansde012.dotline
 
 import android.graphics.Canvas
 import android.graphics.Color

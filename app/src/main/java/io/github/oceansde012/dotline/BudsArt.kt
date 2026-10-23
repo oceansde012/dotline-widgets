@@ -1,4 +1,4 @@
-﻿package io.github.oceansde012.dotline
+package io.github.oceansde012.dotline
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -31,6 +31,7 @@ object BudsArt {
     private const val DIM_EDGE = 0xFF323236.toInt()
     private const val DIM_GRILLE = 0xFF323236.toInt()
     private const val MAX_BYTES = 200_000
+    private const val MAX_SIDE = 400f
     private const val LOW = 15
     private const val TILT = 5f
     private const val INSET = 2f
@@ -60,6 +61,8 @@ object BudsArt {
         var s = density
         val bytes = wDp * hDp * s * s * 4f
         if (bytes > MAX_BYTES) s *= sqrt(MAX_BYTES / bytes.toDouble()).toFloat()
+        val longest = max(wDp, hDp) * s
+        if (longest > MAX_SIDE) s *= MAX_SIDE / longest
         return Pair((wDp * s).toInt().coerceAtLeast(8), (hDp * s).toInt().coerceAtLeast(8))
     }
 
