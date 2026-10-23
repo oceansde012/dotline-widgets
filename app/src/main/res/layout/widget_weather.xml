@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Weather 2x2 (DESIGN_SPEC.md 2.3). The XML defaults are the picker preview (partly cloudy, 10 degrees);
-     WeatherWidgetProvider recomputes sizes and margins from the real widget size. -->
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Weather 2x2 (DESIGN_SPEC.md 2.3): dot icon top-left, dot-matrix temperature in the middle, condition +
+     H/L at the bottom. WeatherWidgetProvider positions everything from the real size; the defaults are only
+     the picker preview on Android < 15. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -14,8 +15,8 @@
 
     <ImageView
         android:id="@+id/icon"
-        android:layout_width="38dp"
-        android:layout_height="38dp"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
         android:layout_gravity="top|start"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
@@ -32,36 +33,33 @@
         android:layout_marginTop="28dp"
         android:layout_marginEnd="32dp"
         android:ellipsize="end"
-        android:fontFamily="@font/space_mono_regular"
+        android:fontFamily="@font/label_regular"
         android:gravity="end"
         android:includeFontPadding="false"
-        android:letterSpacing="0.08"
+        android:letterSpacing="0.04"
         android:maxLines="1"
         android:textColor="@color/nd_dim"
         android:textSize="11dp"
         android:visibility="gone" />
 
-    <TextView
+    <ImageView
         android:id="@+id/temp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="97dp"
+        android:layout_height="45dp"
         android:layout_gravity="top|start"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="58dp"
-        android:fontFamily="@font/hero"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:text="10°"
-        android:textColor="@color/nd_fg"
-        android:textSize="40dp" />
+        android:layout_marginTop="57dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/pv_wx_temp" />
 
     <LinearLayout
         android:id="@+id/text_block"
         android:layout_width="118dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
+        android:layout_gravity="top|start"
         android:layout_marginStart="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginTop="108dp"
         android:orientation="vertical">
 
         <TextView
@@ -69,9 +67,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:fontFamily="@font/space_mono_regular"
+            android:fontFamily="@font/label_medium"
             android:includeFontPadding="false"
-            android:letterSpacing="0.08"
+            android:letterSpacing="0.04"
             android:maxLines="1"
             android:text="CLOUDY"
             android:textColor="@color/nd_fg"
@@ -83,9 +81,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:ellipsize="end"
-            android:fontFamily="@font/space_mono_regular"
+            android:fontFamily="@font/label_regular"
             android:includeFontPadding="false"
-            android:letterSpacing="0.08"
+            android:letterSpacing="0.04"
             android:maxLines="1"
             android:text="H 12° · L 6°"
             android:textColor="@color/nd_dim"

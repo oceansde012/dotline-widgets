@@ -4,14 +4,21 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 
 /**
- * Exists only so that the user can grant notification access, which MediaSessionManager
- * .getActiveSessions() requires. Notifications themselves are ignored.
+ * Exists so that the user can grant notification access, which MediaSessionManager.getActiveSessions()
+ * requires. Notifications are not stored; media notifications of players are only used to complete a
+ * weak media session (title, cover) in memory.
  */
 class MediaListenerService : NotificationListenerService() {
 
     override fun onListenerConnected() {
         MediaTracker.ensureStarted(this)
+        try {
+            activeNotifications?.forEach { MediaTracker.onNotification(this, it) }
+        } catch (e: Exception) {
+            android.util.Log.w("NdListener", "activeNotifications", e)
+        }
         MediaTracker.render(this, forceFull = true)
+        Ticker.tick(this)
     }
 
     override fun onListenerDisconnected() {
@@ -22,7 +29,7 @@ class MediaListenerService : NotificationListenerService() {
         }
     }
 
-    override fun onNotificationPosted(sbn: StatusBarNotification?) = Unit
+    override fun onNotificationPosted(sbn: StatusBarNotification?) = MediaTracker.onNotification(this, sbn)
 
-    override fun onNotificationRemoved(sbn: StatusBarNotification?) = Unit
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) = MediaTracker.onNotification(this, sbn, removed = true)
 }

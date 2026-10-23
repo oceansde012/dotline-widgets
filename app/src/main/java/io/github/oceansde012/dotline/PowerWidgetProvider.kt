@@ -1,6 +1,5 @@
 package io.github.oceansde012.dotline
 
-import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
@@ -9,13 +8,15 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.RemoteViews
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /**
- * ND_Power 3x1 (DESIGN_SPEC.md 2.5): `77 %`, a 10-dot bar (one dot = 10%) and a status label. Driven by
- * [LiveHost] (battery / power broadcasts) with the 15 min [WeatherJob] as a fallback.
+ * Power 3x1 (DESIGN_SPEC.md 2.5): dot-matrix `81` + `%`, a 10-dot bar (one dot = 10%) and a status label.
+ * Every render reads the sticky ACTION_BATTERY_CHANGED fresh (never a default), on onUpdate, on resize and
+ * from the runtime receivers of [LiveHost]; the 15 min [WeatherJob] is the fallback.
  */
 class PowerWidgetProvider : AppWidgetProvider() {
 
@@ -40,12 +41,13 @@ class PowerWidgetProvider : AppWidgetProvider() {
     }
 
     /** snapshot of the battery state; what the face depends on */
-    private class State(
+    class State(
         val level: Int,
         val charging: Boolean,
         val full: Boolean,
         val tempC: Float,
         val remainingMs: Long,
+        val status: Int = BatteryManager.BATTERY_STATUS_UNKNOWN,
     ) {
         val low get() = level <= LOW_PERCENT
         val key get() = listOf(level, charging, full, tempC > HOT_C)
@@ -54,16 +56,20 @@ class PowerWidgetProvider : AppWidgetProvider() {
     companion object {
         private const val LOW_PERCENT = 15
         private const val HOT_C = 40f
-        private const val REQ_OPEN = 130
         private const val DOTS = 10
         private var lastKey: List<Any>? = null
 
-        /** the same face the home screen gets, from the current battery state (the app's widget gallery) */
+        /** the face for a [widthDp] x [heightDp] tile from the CURRENT battery state (gallery, generated picker preview) */
         fun buildPreview(ctx: Context, widthDp: Float, heightDp: Float): RemoteViews {
             val a = ctx.applicationContext
+            return PowerWidgetProvider().render(a, widthDp, heightDp, current(a))
+        }
+
+        /** fresh read of the sticky battery broadcast */
+        fun current(ctx: Context): State {
+            val a = ctx.applicationContext
             val i = a.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-                ?: Intent(Intent.ACTION_BATTERY_CHANGED).putExtra(BatteryManager.EXTRA_LEVEL, 77)
-            return PowerWidgetProvider().render(a, widthDp, heightDp, state(a, i))
+            return if (i != null) state(a, i) else State(0, false, false, 0f, -1L)
         }
 
         /** re-render from the current sticky battery state, whatever it was before */
@@ -83,10 +89,17 @@ class PowerWidgetProvider : AppWidgetProvider() {
             if (!force && s.key == lastKey) return
             lastKey = s.key
             val p = PowerWidgetProvider()
-            for (id in ids) mgr.updateAppWidget(id, p.build(a, mgr, id, s))
+            for (id in ids) {
+                val sz = WidgetSize.of(a, mgr, id, 230f, 62f)
+                try {
+                    mgr.updateAppWidget(id, p.render(a, sz.width, sz.height, s))
+                } catch (e: Exception) {
+                    Log.w("NdPower", "render failed", e)
+                }
+            }
         }
 
-        private fun state(ctx: Context, i: Intent): State {
+        fun state(ctx: Context, i: Intent): State {
             val raw = i.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
             val scale = i.getIntExtra(BatteryManager.EXTRA_SCALE, 100).coerceAtLeast(1)
             val level = if (raw < 0) 0 else (raw * 100f / scale).roundToInt().coerceIn(0, 100)
@@ -104,50 +117,52 @@ class PowerWidgetProvider : AppWidgetProvider() {
             } else {
                 -1L
             }
-            return State(level, charging, full, temp, remaining)
+            return State(level, charging, full, temp, remaining, status)
         }
     }
 
-    private fun build(ctx: Context, mgr: AppWidgetManager, id: Int, s: State): RemoteViews {
-        val sz = WidgetSize.of(ctx, mgr, id, 230f, 62f)
-        return render(ctx, sz.width, sz.height, s)
-    }
-
     private fun render(ctx: Context, w: Float, h: Float, s: State): RemoteViews {
-        val pad = Tile.pad(h).coerceAtLeast(10f)
+        val density = ctx.resources.displayMetrics.density
+        val pad = Tile.pad(h).coerceAtLeast(12f)
         val rv = RemoteViews(ctx.packageName, R.layout.widget_power)
         Tile.apply(rv, R.id.tile, R.id.zone, h)
 
-        // hero: share of the height, three digits ("100") must still leave a usable bar
-        val hero = (0.5f * h).coerceIn(24f, 46f)
-        val unit = (0.2f * h).coerceIn(10f, 13f)
-        rv.setTextViewTextSize(R.id.pct, DIP, hero)
-        rv.setTextViewTextSize(R.id.unit, DIP, unit)
-        rv.setTextViewText(R.id.pct, s.level.toString())
-        rv.margins(R.id.hero_row, start = pad + 4f)
-        val heroReserve = 1.7f * hero + unit + 4f
-        val colW = (w - 2f * pad - 4f - heroReserve - 10f).coerceAtLeast(60f)
-        rv.margins(R.id.col, end = pad + 2f)
-        rv.setViewLayoutWidth(R.id.col, colW, DIP)
-        rv.size(R.id.bar, colW, colW / DOTS)
-
-        // accent: low battery colours the hero; otherwise charging colours the last lit dot. Never both.
+        // one content band, shared by hero and right column so they sit on the same top / bottom lines
+        val hc = minOf(h - 2f * pad, 38f).coerceAtLeast(20f)
+        val top = (h - hc) / 2f
         val low = s.low
-        rv.setTextColor(R.id.pct, if (low) Nd.ACCENT else Nd.FG)
+
+        val text = s.level.toString()
+        val pitchN = DotText.pitchFor(text, 0.36f * w, hc)
+        val num = DotText.art(text, pitchN, density, if (low) Nd.ACCENT else Nd.FG)
+        rv.putArt(R.id.num, num)
+        val numTop = top + hc - num.hDp   // numerals stand on the bottom line
+        rv.margins(R.id.num, start = pad + 2f, top = numTop)
+        val unit = (0.2f * h).coerceIn(10f, 13f)
+        rv.setTextViewTextSize(R.id.unit, DIP, unit)
+        val unitW = unit * 0.7f + 2f
+        rv.place(R.id.unit, pad + 2f + num.wDp + 4f, top + hc - 16f, unitW + 4f, 16f)
+
+        val x0 = pad + 2f + num.wDp + 4f + unitW + 14f
+        val colW = (w - pad - 2f - x0).coerceAtLeast(50f)
+        val pitchB = minOf(colW / DOTS, hc * 0.48f)
         val lit = ceil(s.level / 10.0).toInt().coerceIn(0, DOTS)
         val accentDot = if (!low && s.charging && lit > 0) lit - 1 else -1
-        rv.setImageViewBitmap(R.id.bar, WeatherArt.bar(DOTS, lit, Nd.FG, accentDot))
+        val bar = DotText.bar(DOTS, lit, Nd.FG, accentDot, pitchB, density)
+        rv.putArt(R.id.bar, bar)
+        rv.margins(R.id.bar, start = x0, top = top)
 
-        // status label
-        val size = (0.17f * h).coerceIn(9f, 11f)
+        // status line under the bar, bottom aligned with the numerals
+        val statusH = (hc - pitchB - 4f).coerceAtLeast(12f)
+        val size = (statusH * 0.8f).coerceIn(9f, 11.5f)
         rv.setTextViewTextSize(R.id.status, DIP, size)
-        val maxChars = (colW / (size * 0.68f)).toInt()
-        val status = statusText(ctx, s, maxChars)
-        rv.setTextViewText(R.id.status, status)
+        val maxChars = (colW / (size * 0.64f)).toInt()
+        rv.setTextViewText(R.id.status, statusText(ctx, s, maxChars))
+        rv.place(R.id.status, x0, top + hc - statusH, colW, statusH)
         val hot = !s.charging && !s.full && s.tempC > HOT_C && !low
         rv.setTextColor(R.id.status, if (hot) Nd.ACCENT else Nd.DIM)
 
-        rv.setOnClickPendingIntent(R.id.zone, openBattery(ctx))
+        rv.setOnClickPendingIntent(R.id.zone, Taps.battery(ctx))
         return rv
     }
 
@@ -169,13 +184,5 @@ class PowerWidgetProvider : AppWidgetProvider() {
             if (withTemp.length <= maxChars) return withTemp
         }
         return base
-    }
-
-    /** battery usage page, this app if the settings screen is not available */
-    private fun openBattery(ctx: Context): PendingIntent {
-        val usage = Intent(Intent.ACTION_POWER_USAGE_SUMMARY).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val target = if (usage.resolveActivity(ctx.packageManager) != null) usage
-        else Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        return PendingIntent.getActivity(ctx, REQ_OPEN, target, immutable())
     }
 }

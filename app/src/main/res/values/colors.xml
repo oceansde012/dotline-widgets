@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- DESIGN_SPEC.md section 1 -->
-    <color name="nd_bg">#FF141416</color>
-    <color name="nd_stroke">#FF222225</color>
+    <color name="nd_bg">#FF101012</color>
+    <color name="nd_stroke">#FF34343A</color>
     <color name="nd_fg">#FFF2F2F2</color>
     <color name="nd_dim">#FF8E8E93</color>
     <color name="nd_faint">#FF4A4A4E</color>
@@ -10,4 +10,4 @@
     <color name="nd_accent">#FFD71921</color>
     <color name="nd_chip">#FF232326</color>
     <color name="nd_screen">#FF000000</color>
-</resources>
+    <color name="nd_hi">#0FFFFFFF</color>`n    <color name="nd_off_dot">#992C2C2F</color>`n</resources>

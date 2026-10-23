@@ -1,4 +1,4 @@
-package io.github.oceansde012.dotline
+﻿package io.github.oceansde012.dotline
 
 import android.graphics.Canvas
 import android.graphics.Color
@@ -9,8 +9,8 @@ object Nd {
     val FG = Color.rgb(0xF2, 0xF2, 0xF2)
     val DIM = Color.rgb(0x8E, 0x8E, 0x93)
     val FAINT = Color.rgb(0x4A, 0x4A, 0x4E)
-    val BG = Color.rgb(0x14, 0x14, 0x16)
-    val STROKE = Color.rgb(0x22, 0x22, 0x25)
+    val BG = Color.rgb(0x10, 0x10, 0x12)
+    val STROKE = Color.rgb(0x34, 0x34, 0x3A)
     val OFF = Color.rgb(0x2C, 0x2C, 0x2F)
     val ACCENT = Color.rgb(0xD7, 0x19, 0x21)
     val CHIP = Color.rgb(0x23, 0x23, 0x26)
@@ -56,3 +56,4 @@ object Glyphs {
         }
     }
 }
+

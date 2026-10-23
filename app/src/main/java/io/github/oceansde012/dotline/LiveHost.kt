@@ -1,9 +1,9 @@
 package io.github.oceansde012.dotline
 
+import android.bluetooth.BluetoothA2dp
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothHeadset
-import android.bluetooth.BluetoothA2dp
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -11,9 +11,10 @@ import android.content.IntentFilter
 import android.os.Build
 
 /**
- * Runtime receivers of the power / weather / buds widgets (none of these broadcasts can be declared in
+ * Runtime receivers of the clock / power / weather / buds widgets (none of these broadcasts can be declared in
  * the manifest). Started from [MediaTracker.ensureStarted], i.e. by the long-lived listener service, the
- * providers' onUpdate and the activity; when the process dies, the 15 min [WeatherJob] catches up.
+ * providers' onUpdate and the activity; when the process dies, [Ticker]'s alarm and the 15 min [WeatherJob]
+ * catch up.
  */
 object LiveHost {
     /** system broadcasts, sent by the framework itself */
@@ -22,6 +23,9 @@ object LiveHost {
         Intent.ACTION_BATTERY_CHANGED,
         Intent.ACTION_POWER_CONNECTED,
         Intent.ACTION_POWER_DISCONNECTED,
+        Intent.ACTION_TIME_TICK,
+        Intent.ACTION_TIME_CHANGED,
+        Intent.ACTION_TIMEZONE_CHANGED,
     )
 
     /** sent by the Bluetooth app (another uid), so the receiver has to be exported */
@@ -65,7 +69,11 @@ object LiveHost {
                         WeatherRepo.refreshAsync(context, USER_PRESENT_MIN_AGE_MS)
                     }
                     BudsRepo.refreshAsync(context)
+                    PowerWidgetProvider.refresh(context)
+                    Ticker.tick(context)
                 }
+                // minute boundary (also covers the date rollover) and clock / zone changes
+                Intent.ACTION_TIME_TICK, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED -> Ticker.tick(context)
                 // sticky: delivered once on registration, then on every charge-state tick
                 Intent.ACTION_BATTERY_CHANGED -> PowerWidgetProvider.onBattery(context, intent, force = false)
                 Intent.ACTION_POWER_CONNECTED, Intent.ACTION_POWER_DISCONNECTED -> PowerWidgetProvider.refresh(context)
@@ -75,6 +83,7 @@ object LiveHost {
 
     private val btReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == BudsRepo.ACTION_BATTERY_LEVEL_CHANGED) BudsRepo.onBatteryBroadcast(intent)
             BudsRepo.refreshAsync(context)
         }
     }

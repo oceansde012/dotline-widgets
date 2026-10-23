@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="head_widget_desc">Дата і найближчий будильник в одному рядку</string>
     <string name="alarm_fmt">БУДИЛЬНИК %s</string>
@@ -8,9 +8,9 @@
     <string name="pin_unsupported">Цей лаунчер не вміє додавати віджети з застосунків. Затисніть екран, оберіть Віджети, потім Dotline Widgets.</string>
     <string name="weather_widget_desc">Точкова погода: температура, стан, максимум і мінімум</string>
     <string name="power_widget_desc">Рівень заряду десятьма крапками та стан зарядки</string>
-    <string name="buds_widget_desc">Заряд навушників: лівий, правий і кейс</string>
+    <string name="buds_widget_desc">Зображення навушників із зарядом: лівий, правий і кейс</string>
 
-    <string name="wx_set_city">ОБЕРІТЬ МІСТО</string>
+    <string name="wx_set_city">Оберіть місто</string>
     <string name="wx_no_data">НЕМАЄ ДАНИХ</string>
     <string name="wx_updated">ОНОВЛЕНО %s</string>
     <string name="wx_rain_now">ДОЩ ЗАРАЗ</string>
@@ -35,9 +35,9 @@
     <string name="power_on_battery">ВІД БАТАРЕЇ</string>
     <string name="power_h_m">%1$d ГОД %2$02d ХВ</string>
     <string name="power_m">%d ХВ</string>
-    <string name="buds_allow">ДОЗВОЛЬТЕ BLUETOOTH</string>
-    <string name="buds_not_connected">НЕ ПІДКЛЮЧЕНО</string>
-    <string name="buds_connected">ПІДКЛЮЧЕНО</string>
+    <string name="buds_allow">Дозвольте Bluetooth</string>
+    <string name="buds_not_connected">Не підключено</string>
+    <string name="buds_connected">Підключено</string>
     <string name="buds_case">КЕЙС %d</string>
 
     <!-- app screen -->
@@ -82,7 +82,7 @@
     <string name="opt_remaining">ЗАЛИШИЛОСЬ</string>
     <string name="opt_total">ВСЬОГО</string>
     <string name="set_clock_note">Формат годинника (12 / 24 год) береться із системи.</string>
-    <string name="footer_fonts">Space Mono і Doto: ліцензія SIL OFL 1.1.</string>
+    <string name="footer_fonts">IBM Plex Mono: ліцензія SIL OFL 1.1. Точкові цифри малює сам застосунок.</string>
 
     <string name="sec_updates">ОНОВЛЕННЯ</string>
     <string name="upd_setup_title">АВТООНОВЛЕННЯ</string>
@@ -103,4 +103,31 @@
     <string name="upd_channel">Оновлення застосунку</string>
     <string name="upd_notif_title">Оновлення %s готове — торкніться, щоб встановити</string>
     <string name="upd_notif_text">Dotline Widgets</string>
+
+    <!-- v3 -->
+    <string name="sec_diag">ДІАГНОСТИКА</string>
+    <string name="diag_title">СТАН НАЖИВО</string>
+    <string name="btn_open_settings_notif">ДОЗВОЛИТИ ДОСТУП ДО СПОВІЩЕНЬ</string>
+    <string name="btn_copy_report">СКОПІЮВАТИ ЗВІТ</string>
+    <string name="report_copied">Звіт скопійовано</string>
+    <string name="notif_status_yes">Доступ до сповіщень для Dotline Widgets: УВІМКНЕНО</string>
+    <string name="notif_status_no">Доступ до сповіщень для Dotline Widgets: ВИМКНЕНО</string>
+    <string name="player_allow">Дозвольте доступ</string>
+    <string name="player_allow_hint">Доступ до сповіщень вимкнено</string>
+    <string name="player_idle_hint">Увімкніть щось, щоб побачити тут</string>
+    <string name="wx_set_city_hint">Торкніться, щоб обрати місто</string>
+    <string name="buds_allow_hint">Торкніться, щоб дозволити</string>
+    <string name="buds_none">Немає навушників</string>
+    <string name="buds_none_hint">Підключіть у Bluetooth</string>
+    <string name="buds_picture_title">ЗОБРАЖЕННЯ НАВУШНИКІВ</string>
+    <string name="buds_picture_none">Навушники ще не підключались</string>
+    <string name="buds_picture_for">%1$s · ЗОБРАЖЕННЯ: %2$s</string>
+    <string name="buds_picture_note">Зображення береться із застосунку Nothing X або від Android, якщо доступне. Обране вами зображення лишається на цьому телефоні.</string>
+    <string name="btn_choose_picture">ОБРАТИ ЗОБРАЖЕННЯ</string>
+    <string name="btn_reset">СКИНУТИ</string>
+    <string name="btn_from_nothing_x">З NOTHING X</string>
+    <string name="no_picker">На телефоні немає вибору файлів.</string>
+    <string name="nx_not_installed">Nothing X не встановлено (або не видно цьому застосунку).</string>
+    <string name="nx_none_found">У Nothing X не знайдено великих зображень (бачу %d).</string>
 </resources>
+

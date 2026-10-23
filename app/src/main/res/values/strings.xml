@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Dotline Widgets</string>
     <string name="listener_label">Dotline media</string>
@@ -27,11 +27,11 @@
     <string name="power_widget_label">Dotline Power</string>
     <string name="power_widget_desc">Battery level as ten dots, with charging status</string>
     <string name="buds_widget_label">Dotline Buds</string>
-    <string name="buds_widget_desc">Earbuds battery: left, right and case</string>
+    <string name="buds_widget_desc">Earbuds picture with left, right and case battery</string>
     <string name="cd_open_weather">Open weather</string>
     <string name="cd_open_battery">Open battery usage</string>
     <string name="cd_open_bluetooth">Open Bluetooth settings</string>
-    <string name="wx_set_city">SET CITY</string>
+    <string name="wx_set_city">Set city</string>
     <string name="wx_no_data">NO DATA</string>
     <string name="wx_updated">UPDATED %s</string>
     <string name="wx_rain_now">RAIN NOW</string>
@@ -56,9 +56,9 @@
     <string name="power_on_battery">ON BATTERY</string>
     <string name="power_h_m">%1$dH %2$02dM</string>
     <string name="power_m">%dM</string>
-    <string name="buds_allow">ALLOW BLUETOOTH</string>
-    <string name="buds_not_connected">NOT CONNECTED</string>
-    <string name="buds_connected">CONNECTED</string>
+    <string name="buds_allow">Allow Bluetooth</string>
+    <string name="buds_not_connected">Not connected</string>
+    <string name="buds_connected">Connected</string>
     <string name="buds_case">CASE %d</string>
 
     <!-- app screen -->
@@ -109,7 +109,7 @@
     <string name="set_clock_note">Clock format (12h / 24h) follows the system.</string>
 
     <string name="footer_weather">Weather data by Open-Meteo.com</string>
-    <string name="footer_fonts">Space Mono and Doto: SIL Open Font License 1.1.</string>
+    <string name="footer_fonts">IBM Plex Mono: SIL Open Font License 1.1. The dot-matrix numerals are drawn by the app itself.</string>
 
     <string name="sec_updates">UPDATES</string>
     <string name="upd_setup_title">AUTO-UPDATES</string>
@@ -130,4 +130,31 @@
     <string name="upd_channel">App updates</string>
     <string name="upd_notif_title">Update %s ready — tap to install</string>
     <string name="upd_notif_text">Dotline Widgets</string>
+
+    <!-- v3 -->
+    <string name="sec_diag">DIAGNOSTICS</string>
+    <string name="diag_title">LIVE STATE</string>
+    <string name="btn_open_settings_notif">ALLOW NOTIFICATION ACCESS</string>
+    <string name="btn_copy_report">COPY REPORT</string>
+    <string name="report_copied">Report copied</string>
+    <string name="notif_status_yes">Notification access for Dotline Widgets: ON</string>
+    <string name="notif_status_no">Notification access for Dotline Widgets: OFF</string>
+    <string name="player_allow">Allow access</string>
+    <string name="player_allow_hint">Notification access is off</string>
+    <string name="player_idle_hint">Play something to see it here</string>
+    <string name="wx_set_city_hint">Tap to choose a city</string>
+    <string name="buds_allow_hint">Tap to allow</string>
+    <string name="buds_none">No earbuds</string>
+    <string name="buds_none_hint">Connect in Bluetooth</string>
+    <string name="buds_picture_title">EARBUDS PICTURE</string>
+    <string name="buds_picture_none">No earbuds connected yet</string>
+    <string name="buds_picture_for">%1$s · PICTURE: %2$s</string>
+    <string name="buds_picture_note">The picture is read from the Nothing X app or Android if available. A picture you choose stays on this phone.</string>
+    <string name="btn_choose_picture">CHOOSE PICTURE</string>
+    <string name="btn_reset">RESET</string>
+    <string name="btn_from_nothing_x">FROM NOTHING X</string>
+    <string name="no_picker">No file picker found on this phone.</string>
+    <string name="nx_not_installed">Nothing X is not installed (or not visible to this app).</string>
+    <string name="nx_none_found">No product-size pictures found in Nothing X (%d images seen).</string>
 </resources>
+

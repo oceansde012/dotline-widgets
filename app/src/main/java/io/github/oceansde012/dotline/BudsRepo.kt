@@ -1,4 +1,4 @@
-package io.github.oceansde012.dotline
+﻿package io.github.oceansde012.dotline
 
 import android.Manifest
 import android.bluetooth.BluetoothA2dp
@@ -8,10 +8,19 @@ import android.bluetooth.BluetoothHeadset
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import java.io.File
+import java.security.MessageDigest
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 /** What the buds widget shows. Battery values are percent, -1 = unknown. */
 class Buds(
@@ -21,42 +30,76 @@ class Buds(
     val left: Int,
     val right: Int,
     val case: Int,
-    /** single level (HFP / getBatteryLevel) when the earbuds do not report L / R */
+    /** single level (HFP / getBatteryLevel / broadcast) when the earbuds do not report L / R */
     val single: Int,
+    val address: String = "",
+    /** upper-case model line for the label, e.g. `NOTHING EAR (3)` */
+    val model: String = "",
+    /** package of the companion app (Nothing X, Galaxy Wearable ...), if installed */
+    val companion: String? = null,
+    /** where the winning battery value came from, for the diagnostics card */
+    val source: String = "none",
 ) {
     val hasSides get() = left >= 0 || right >= 0
     val lowest: Int get() = listOf(left, right, single).filter { it >= 0 }.minOrNull() ?: -1
-    val key get() = listOf(permission, connected, name, left, right, case, single)
+    val key get() = listOf(permission, connected, name, left, right, case, single, address, companion ?: "")
+    val title: String get() = model.ifBlank { name.uppercase(Locale.getDefault()) }
 
     companion object {
         fun noPermission() = Buds(false, false, "", -1, -1, -1, -1)
-        fun disconnected() = Buds(true, false, "", -1, -1, -1, -1)
+        fun disconnected(last: Buds? = null) =
+            Buds(true, false, last?.name ?: "", -1, -1, -1, -1, last?.address ?: "", last?.model ?: "", last?.companion)
     }
 }
 
+/** the earbud picture and where it came from (USER / NOTHING_X / METADATA / ILLUSTRATION) */
+class BudsPic(val bmp: Bitmap?, val source: String, val tag: String)
+
 /**
- * Connected audio device + earbud battery (DESIGN_SPEC.md 2.6). Battery order: untethered metadata
- * (left / right / case) via reflection, then BluetoothDevice.getBatteryLevel() via reflection, else
- * connected-only. Both are hidden / system APIs: every call is guarded and a failure just means "unknown".
- * The last result is kept in memory and in SharedPreferences so a freshly started process can render at once.
+ * Connected audio device + earbud battery + earbud picture (DESIGN_SPEC.md 2.6).
+ *
+ * Battery order: untethered metadata (left / right / case) via reflection, BluetoothDevice.getBatteryLevel()
+ * via reflection, the BATTERY_LEVEL_CHANGED broadcast, else connected-only. These are hidden / system APIs:
+ * every call is guarded and a failure just means "unknown" (the diagnostics card says `blocked`).
+ *
+ * Picture order: user-chosen picture (explicit choice wins) -> image read from the installed Nothing X app ->
+ * the device icon URIs of Android's Bluetooth metadata -> our own illustration ([BudsArt]); the companion app's
+ * icon is shown as a small badge. Everything is cached on disk (filesDir/buds, <= 256 px) and resolved off the
+ * main thread; nothing is bundled.
  */
 object BudsRepo {
     private const val TAG = "NdBuds"
     private const val PREFS = "nd_buds"
     private const val K_LAST = "last"
+    private const val K_DEV = "last_dev"
+    private const val MAX_PIC = 256
 
     /** BluetoothDevice.ACTION_BATTERY_LEVEL_CHANGED is hidden API (a protected broadcast, stable string) */
     const val ACTION_BATTERY_LEVEL_CHANGED = "android.bluetooth.device.action.BATTERY_LEVEL_CHANGED"
+    private const val EXTRA_BATTERY_LEVEL = "android.bluetooth.device.extra.BATTERY_LEVEL"
 
-    // BluetoothDevice.METADATA_UNTETHERED_*_BATTERY (AOSP: MANUFACTURER_NAME = 0 ... LEFT_ICON 7, RIGHT_ICON 8,
-    // CASE_ICON 9, then the batteries)
+    // BluetoothDevice.METADATA_* (verified against AOSP BluetoothDevice.java)
+    private const val META_MANUFACTURER = 0
+    private const val META_MODEL_NAME = 1
+    private const val META_COMPANION_APP = 4
+    private const val META_MAIN_ICON = 5
+    private const val META_LEFT_ICON = 7
+    private const val META_RIGHT_ICON = 8
     private const val META_LEFT_BATTERY = 10
     private const val META_RIGHT_BATTERY = 11
     private const val META_CASE_BATTERY = 12
 
+    private val NOTHING_X = listOf("com.nothing.smartcenter", "com.nothing.hearthstone")
+    private const val GALAXY_WEARABLE = "com.samsung.android.app.watchmanager"
+
     private val main = Handler(Looper.getMainLooper())
+    private val io = Executors.newSingleThreadExecutor()
     @Volatile private var last: Buds? = null
     private var refreshing = false
+    private val broadcastLevel = ConcurrentHashMap<String, Int>()
+    private val tried = HashSet<String>()
+
+    // --- permission / state ----------------------------------------------------------------------
 
     fun hasPermission(ctx: Context): Boolean =
         ctx.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
@@ -65,16 +108,19 @@ object BudsRepo {
     fun current(ctx: Context): Buds {
         if (!hasPermission(ctx)) return Buds.noPermission()
         last?.let { return it }
-        val s = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(K_LAST, null)
+        val sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val dev = sp.getString(K_DEV, null)?.split('|')
+        val known = if (dev != null && dev.size >= 3) Buds(true, false, dev[0], -1, -1, -1, -1, dev[1], dev[2], dev.getOrNull(3)?.ifBlank { null }) else null
+        val s = sp.getString(K_LAST, null)
         val parsed = s?.split('|')?.takeIf { it.size == 5 }?.let {
             try {
-                Buds(true, true, it[0], it[1].toInt(), it[2].toInt(), it[3].toInt(), it[4].toInt())
+                Buds(true, true, it[0], it[1].toInt(), it[2].toInt(), it[3].toInt(), it[4].toInt(), known?.address ?: "", known?.model ?: "", known?.companion)
             } catch (e: Exception) {
                 null
             }
         }
         // prefs hold only a connected state; "no entry" renders as disconnected until the first refresh
-        return parsed ?: Buds.disconnected()
+        return parsed ?: Buds.disconnected(known)
     }
 
     private fun store(ctx: Context, b: Buds) {
@@ -82,16 +128,29 @@ object BudsRepo {
         val v = if (b.connected) "${b.name.replace('|', ' ')}|${b.left}|${b.right}|${b.case}|${b.single}" else null
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply {
             if (v == null) remove(K_LAST) else putString(K_LAST, v)
+            if (b.connected && b.address.isNotEmpty()) {
+                putString(K_DEV, "${b.name.replace('|', ' ')}|${b.address}|${b.model.replace('|', ' ')}|${b.companion ?: ""}")
+            }
         }.apply()
     }
 
+    fun onBatteryBroadcast(i: Intent) {
+        @Suppress("DEPRECATION") val d = i.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE) ?: return
+        val level = i.getIntExtra(EXTRA_BATTERY_LEVEL, -1)
+        if (level in 0..100) broadcastLevel[d.address] = level
+    }
+
+    fun forgetTried() = synchronized(tried) { tried.clear() }
+
+    // --- refresh -----------------------------------------------------------------------------------
+
     /**
-     * Asks the A2DP and HEADSET profile proxies for connected devices, reads their batteries and
-     * re-renders the widgets. Async (the proxies connect asynchronously); cheap when no widget is placed.
+     * Asks the A2DP and HEADSET profile proxies (and the bonded list) for connected devices, reads their batteries
+     * and re-renders the widgets. Async; cheap when no widget is placed unless [force] (the app screen).
      */
-    fun refreshAsync(ctx: Context) {
+    fun refreshAsync(ctx: Context, force: Boolean = false) {
         val a = ctx.applicationContext
-        if (!WeatherJob.hasWidgets(a, BudsWidgetProvider::class.java)) return
+        if (!force && !WeatherJob.hasWidgets(a, BudsWidgetProvider::class.java)) return
         if (!hasPermission(a)) {
             last = null
             BudsWidgetProvider.updateAll(a)
@@ -108,7 +167,7 @@ object BudsRepo {
             null
         }
         if (adapter == null || !adapter.isEnabled) {
-            publish(a, Buds.disconnected())
+            publish(a, Buds.disconnected(last))
             return
         }
         refreshing = true
@@ -122,10 +181,12 @@ object BudsRepo {
             main.removeCallbacksAndMessages(TIMEOUT_TOKEN)
             refreshing = false
             val b = try {
+                // proxies first; the bonded list with isConnected() is the second way to find the device
+                if (devices.isEmpty()) bondedConnected(adapter).forEach { devices[it.address] = it }
                 read(a, devices.values.toList())
             } catch (e: Exception) {
                 Log.w(TAG, "read failed", e)
-                Buds.disconnected()
+                Buds.disconnected(last)
             }
             publish(a, b)
         }
@@ -168,11 +229,25 @@ object BudsRepo {
         refreshing = false
         store(a, b)
         BudsWidgetProvider.updateAll(a)
+        resolvePictureAsync(a, b)
+    }
+
+    @Suppress("MissingPermission")
+    private fun bondedConnected(adapter: BluetoothAdapter): List<BluetoothDevice> = try {
+        adapter.bondedDevices.filter { isConnected(it) }
+    } catch (e: Exception) {
+        emptyList()
+    }
+
+    private fun isConnected(d: BluetoothDevice): Boolean = try {
+        BluetoothDevice::class.java.getMethod("isConnected").invoke(d) as? Boolean ?: false
+    } catch (t: Throwable) {
+        false
     }
 
     /** picks the device that reports batteries (earbuds) over e.g. a car kit, and reads them */
     private fun read(a: Context, devices: List<BluetoothDevice>): Buds {
-        if (devices.isEmpty()) return Buds.disconnected()
+        if (devices.isEmpty()) return Buds.disconnected(last)
         var best: Buds? = null
         for (d in devices) {
             val name = try {
@@ -183,23 +258,58 @@ object BudsRepo {
             val l = metaBattery(d, META_LEFT_BATTERY)
             val r = metaBattery(d, META_RIGHT_BATTERY)
             val c = metaBattery(d, META_CASE_BATTERY)
-            val single = if (l < 0 && r < 0) deviceBattery(d) else -1
-            val b = Buds(true, true, name, l, r, c, single)
+            var single = -1
+            var source = if (l >= 0 || r >= 0) "METADATA L/R" else "none"
+            if (l < 0 && r < 0) {
+                single = deviceBattery(d)
+                if (single >= 0) source = "getBatteryLevel"
+                else broadcastLevel[d.address]?.let { single = it; source = "BATTERY_LEVEL_CHANGED broadcast" }
+            }
+            val modelRaw = metaString(d, META_MODEL_NAME) ?: name
+            val b = Buds(true, true, name, l, r, c, single, d.address, prettyModel(modelRaw), companionFor(a, d, modelRaw), source)
             if (best == null || score(b) > score(best)) best = b
         }
-        return best ?: Buds.disconnected()
+        return best ?: Buds.disconnected(last)
     }
 
-    private fun score(b: Buds) = (if (b.hasSides) 2 else 0) + (if (b.single >= 0) 1 else 0)
+    private fun score(b: Buds) = (if (b.hasSides) 2 else 0) + (if (b.single >= 0) 1 else 0) + (if (b.model.isNotBlank()) 0 else 0)
 
-    /** BluetoothDevice.getMetadata(int): byte[] holding the percent as ASCII text; -1 when unavailable */
-    private fun metaBattery(d: BluetoothDevice, key: Int): Int = try {
-        val m = BluetoothDevice::class.java.getMethod("getMetadata", Int::class.javaPrimitiveType)
-        val bytes = m.invoke(d, key) as? ByteArray
-        val v = bytes?.let { String(it, Charsets.UTF_8).trim().toIntOrNull() } ?: -1
-        if (v in 0..100) v else -1
+    /** `Ear (3)` -> `NOTHING EAR (3)`; other models are shown as reported */
+    fun prettyModel(raw: String): String {
+        val s = raw.trim()
+        val l = s.lowercase(Locale.ROOT)
+        val full = if (l.startsWith("ear (") || l.startsWith("ear(")) "Nothing $s" else s
+        return full.uppercase(Locale.getDefault())
+    }
+
+    // --- Bluetooth metadata (hidden @SystemApi, reflection) -----------------------------------------
+
+    @Volatile var metadataBlocked: String? = null
+        private set
+
+    private val getMetadataMethod by lazy {
+        try {
+            BluetoothDevice::class.java.getMethod("getMetadata", Int::class.javaPrimitiveType)
+        } catch (t: Throwable) {
+            metadataBlocked = t.javaClass.simpleName
+            null
+        }
+    }
+
+    private fun meta(d: BluetoothDevice, key: Int): ByteArray? = try {
+        getMetadataMethod?.invoke(d, key) as? ByteArray
     } catch (t: Throwable) {
-        -1
+        metadataBlocked = (t.cause ?: t).javaClass.simpleName
+        null
+    }
+
+    private fun metaString(d: BluetoothDevice, key: Int): String? =
+        meta(d, key)?.let { String(it, Charsets.UTF_8).trim() }?.takeIf { it.isNotEmpty() }
+
+    /** the percent as ASCII text; -1 when unavailable */
+    private fun metaBattery(d: BluetoothDevice, key: Int): Int {
+        val v = metaString(d, key)?.toIntOrNull() ?: -1
+        return if (v in 0..100) v else -1
     }
 
     /** BluetoothDevice.getBatteryLevel(): hidden; BATTERY_LEVEL_UNKNOWN = -1 */
@@ -210,4 +320,282 @@ object BudsRepo {
     } catch (t: Throwable) {
         -1
     }
+
+    // --- companion app -------------------------------------------------------------------------------
+
+    fun nothingXPackages(a: Context): List<String> {
+        val pm = a.packageManager
+        val out = LinkedHashSet<String>()
+        for (p in NOTHING_X) if (installed(pm, p)) out.add(p)
+        try {
+            for (ai in pm.getInstalledApplications(0)) {
+                val p = ai.packageName
+                if (p.startsWith("com.nothingtech.") || p.startsWith("com.nothing.") &&
+                    (p.contains("smartcenter") || p.contains("hearthstone") || p.contains("ear") || p.contains("nothingx"))
+                ) out.add(p)
+                else if (pm.getApplicationLabel(ai).toString().equals("Nothing X", true)) out.add(p)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "scan packages", e)
+        }
+        return out.toList()
+    }
+
+    private fun installed(pm: PackageManager, pkg: String) = try {
+        pm.getApplicationInfo(pkg, 0); true
+    } catch (e: Exception) {
+        false
+    }
+
+    private fun isNothing(model: String): Boolean {
+        val l = model.lowercase(Locale.ROOT)
+        return "nothing" in l || l.startsWith("ear (") || l.startsWith("ear(") || "cmf" in l
+    }
+
+    private fun companionFor(a: Context, d: BluetoothDevice, modelRaw: String): String? {
+        val pm = a.packageManager
+        metaString(d, META_COMPANION_APP)?.let { if (installed(pm, it)) return it }
+        if (isNothing(modelRaw)) nothingXPackages(a).firstOrNull()?.let { return it }
+        if ("galaxy buds" in modelRaw.lowercase(Locale.ROOT) && installed(pm, GALAXY_WEARABLE)) return GALAXY_WEARABLE
+        return null
+    }
+
+    // --- pictures ------------------------------------------------------------------------------------
+
+    private fun dir(a: Context) = File(a.filesDir, "buds").also { it.mkdirs() }
+
+    private fun hash(address: String): String {
+        val md = MessageDigest.getInstance("SHA-256").digest(address.toByteArray())
+        return md.take(5).joinToString("") { "%02x".format(it) }
+    }
+
+    private fun load(f: File): Bitmap? = if (f.exists()) try { BitmapFactory.decodeFile(f.path) } catch (e: Exception) { null } else null
+
+    private fun save(f: File, src: Bitmap) {
+        val k = minOf(1f, MAX_PIC.toFloat() / maxOf(src.width, src.height))
+        val b = if (k < 1f) Bitmap.createScaledBitmap(src, (src.width * k).toInt().coerceAtLeast(1), (src.height * k).toInt().coerceAtLeast(1), true) else src
+        f.outputStream().use { b.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+
+    private fun srcPref(a: Context) = a.getSharedPreferences("nd_buds_pic", Context.MODE_PRIVATE)
+
+    /** disk read of the already resolved picture; never blocks on the network */
+    fun picture(a: Context, b: Buds): BudsPic {
+        if (b.address.isEmpty()) return BudsPic(null, "ILLUSTRATION", "none")
+        val h = hash(b.address)
+        load(File(dir(a), "${h}_user.png"))?.let { return BudsPic(it, "USER", "user$h") }
+        load(File(dir(a), "${h}_auto.png"))?.let { return BudsPic(it, srcPref(a).getString("src_$h", "AUTO") ?: "AUTO", "auto$h") }
+        return BudsPic(null, "ILLUSTRATION", "none")
+    }
+
+    fun hasUserPicture(a: Context, b: Buds) = b.address.isNotEmpty() && File(dir(a), "${hash(b.address)}_user.png").exists()
+
+    fun setUserPicture(a: Context, b: Buds, src: Bitmap) {
+        if (b.address.isEmpty()) return
+        save(File(dir(a), "${hash(b.address)}_user.png"), src)
+        BudsWidgetProvider.updateAll(a)
+    }
+
+    fun resetUserPicture(a: Context, b: Buds) {
+        if (b.address.isEmpty()) return
+        File(dir(a), "${hash(b.address)}_user.png").delete()
+        BudsWidgetProvider.updateAll(a)
+    }
+
+    /** latest resolver notes, shown in the diagnostics card */
+    @Volatile var resolveNotes: String = "not run yet"
+        private set
+
+    private fun resolvePictureAsync(a: Context, b: Buds) {
+        if (!b.connected || b.address.isEmpty()) return
+        val h = hash(b.address)
+        synchronized(tried) { if (!tried.add(h)) return }
+        io.execute {
+            try {
+                resolve(a, b, h)
+            } catch (e: Throwable) {
+                resolveNotes = "error: ${e.javaClass.simpleName}"
+                Log.w(TAG, "picture resolve failed", e)
+            }
+        }
+    }
+
+    private fun resolve(a: Context, b: Buds, h: String) {
+        val notes = StringBuilder()
+        val auto = File(dir(a), "${h}_auto.png")
+        // 0 Nothing X resources
+        val model = b.model.ifBlank { b.name }
+        val scan = scanNothingX(a, model)
+        notes.append("NothingX pkgs=${scan.packages.size} candidates=${scan.all.size} picked=${scan.picked?.name ?: "none"}")
+        var src: String? = null
+        scan.picked?.let { c ->
+            decodeCand(a, c, MAX_PIC)?.let { save(auto, it); src = "NOTHING_X"; notes.append(" -> ${c.type}/${c.name} ${c.w}x${c.h}") }
+        }
+        // 1 Android metadata icons
+        if (src == null) {
+            val bd = try {
+                a.getSystemService(BluetoothManager::class.java)?.adapter?.getRemoteDevice(b.address)
+            } catch (e: Exception) {
+                null
+            }
+            if (bd != null) {
+                val mainUri = metaString(bd, META_MAIN_ICON)
+                val lUri = metaString(bd, META_LEFT_ICON)
+                val rUri = metaString(bd, META_RIGHT_ICON)
+                notes.append(" | metadata: ").append(if (getMetadataMethod == null) "blocked ($metadataBlocked)" else "main=${scheme(mainUri)} left=${scheme(lUri)} right=${scheme(rUri)}")
+                val pic = try {
+                    when {
+                        mainUri != null -> ArtLoader.decode(a, mainUri)
+                        lUri != null && rUri != null -> sideBySide(ArtLoader.decode(a, lUri), ArtLoader.decode(a, rUri))
+                        else -> null
+                    }
+                } catch (e: Exception) {
+                    notes.append(" load failed: ${e.javaClass.simpleName}")
+                    null
+                }
+                if (pic != null) {
+                    save(auto, pic); src = if (mainUri != null) "METADATA_MAIN_ICON" else "METADATA_L+R_ICONS"
+                }
+            }
+        }
+        val sp = srcPref(a).edit()
+        if (src != null) sp.putString("src_$h", src) else { sp.remove("src_$h"); auto.delete() }
+        sp.apply()
+        notes.append(" | result=${src ?: "ILLUSTRATION"}")
+        resolveNotes = notes.toString()
+        if (src != null) BudsWidgetProvider.updateAll(a)
+    }
+
+    private fun scheme(u: String?) = if (u == null) "none" else (android.net.Uri.parse(u).scheme ?: "?")
+
+    private fun sideBySide(l: Bitmap?, r: Bitmap?): Bitmap? {
+        if (l == null || r == null) return l ?: r
+        val h = maxOf(l.height, r.height)
+        val out = Bitmap.createBitmap(l.width + r.width, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(out)
+        c.drawBitmap(l, 0f, (h - l.height) / 2f, null)
+        c.drawBitmap(r, l.width.toFloat(), (h - r.height) / 2f, null)
+        return out
+    }
+
+    // --- Nothing X: pictures read from the installed app's own resources -------------------------------
+
+    class Cand(val pkg: String, val id: Int, val type: String, val name: String, val w: Int, val h: Int, val score: Int)
+    class NxScan(val packages: List<String>, val all: List<Cand>, val picked: Cand?)
+
+    @Volatile var lastScan: NxScan? = null
+        private set
+
+    private val GENERIC = listOf("buds", "earbud", "device", "headset", "product", "img_ear", "ic_ear", "png_ear", "ear")
+    private val REJECT = listOf("launcher", "ic_launcher", "background", "notification", "logo", "banner")
+
+    private fun slugs(model: String): List<String> {
+        val m = model.lowercase(Locale.ROOT).replace("nothing", "").trim()
+        val base = m.filter { it.isLetterOrDigit() }
+        val words = mapOf('1' to "one", '2' to "two", '3' to "three", '4' to "four")
+        val out = LinkedHashSet<String>()
+        if (base.isNotEmpty()) out.add(base)
+        base.lastOrNull()?.let { ch -> words[ch]?.let { out.add(base.dropLast(1) + it) } }
+        if (base.startsWith("ear") && base.length > 3) {
+            out.add("ear" + base.drop(3)); out.add("ear_" + base.drop(3))
+        }
+        return out.toList()
+    }
+
+    private fun rank(name: String, slug: List<String>): Int {
+        val n = name.lowercase(Locale.ROOT)
+        val norm = n.filter { it.isLetterOrDigit() }
+        if (REJECT.any { it in n }) return 0
+        var s = 0
+        for (k in slug) if (k.filter { it.isLetterOrDigit() } in norm && k.isNotEmpty()) s = maxOf(s, 100)
+        if (s == 0) for (g in GENERIC) if (g.filter { it.isLetterOrDigit() } in norm) s = maxOf(s, if (g == "ear") 5 else 15)
+        return s
+    }
+
+    /** blocking: lists the bitmap drawables / mipmaps / raws of every installed Nothing X package */
+    fun scanNothingX(a: Context, model: String): NxScan {
+        val pm = a.packageManager
+        val pkgs = nothingXPackages(a)
+        val slug = slugs(model)
+        val all = ArrayList<Cand>()
+        for (p in pkgs) {
+            try {
+                val res = pm.getResourcesForApplication(p)
+                for (t in 1..0x20) {
+                    val first = (0x7f shl 24) or (t shl 16)
+                    val type = try { res.getResourceTypeName(first) } catch (e: Exception) { continue }
+                    if (type != "drawable" && type != "mipmap" && type != "raw") continue
+                    var e = 0
+                    while (e < 0x1800) {
+                        val id = first or e
+                        val name = try { res.getResourceEntryName(id) } catch (x: Exception) { break }
+                        e++
+                        val o = BitmapFactory.Options().apply { inJustDecodeBounds = true; inScaled = false }
+                        try {
+                            BitmapFactory.decodeResource(res, id, o)
+                        } catch (x: Exception) {
+                            continue
+                        }
+                        if (o.outWidth <= 0 || o.outHeight <= 0) continue
+                        all.add(Cand(p, id, type, name, o.outWidth, o.outHeight, rank(name, slug)))
+                    }
+                }
+            } catch (ex: Exception) {
+                Log.w(TAG, "scan $p", ex)
+            }
+        }
+        val picked = all.filter { it.score > 0 && it.w >= 100 && it.h >= 100 }
+            .maxWithOrNull(compareBy<Cand>({ it.score }, { it.w * it.h }))
+        return NxScan(pkgs, all, picked).also { lastScan = it }
+    }
+
+    fun decodeCand(a: Context, c: Cand, maxSide: Int): Bitmap? = try {
+        val res = a.packageManager.getResourcesForApplication(c.pkg)
+        var s = 1
+        while (c.w / (s * 2) >= maxSide && c.h / (s * 2) >= maxSide) s *= 2
+        val o = BitmapFactory.Options().apply { inSampleSize = s; inScaled = false }
+        BitmapFactory.decodeResource(res, c.id, o)
+    } catch (e: Exception) {
+        null
+    }
+
+    /** product-image-looking bitmaps for the `FROM NOTHING X` picker (>= 200 px, not launcher icons) */
+    fun pickerCandidates(a: Context): List<Cand> {
+        val scan = lastScan ?: scanNothingX(a, "")
+        return scan.all.filter { it.w >= 200 && it.h >= 200 && REJECT.none { r -> r in it.name.lowercase(Locale.ROOT) } }
+            .sortedByDescending { it.score * 1_000_000 + it.w * it.h }.take(60)
+    }
+
+    // --- diagnostics -----------------------------------------------------------------------------------
+
+    @Suppress("MissingPermission")
+    fun diagnose(a: Context): List<String> {
+        val out = ArrayList<String>()
+        out.add("permission: ${if (hasPermission(a)) "yes" else "NO"}")
+        if (!hasPermission(a)) return out
+        val adapter = try { a.getSystemService(BluetoothManager::class.java)?.adapter } catch (e: Exception) { null }
+        out.add("adapter: ${if (adapter == null) "none" else if (adapter.isEnabled) "on" else "off"}")
+        val bonded = try { adapter?.bondedDevices.orEmpty() } catch (e: Exception) { emptySet() }
+        val mb = metadataBlocked
+        getMetadataMethod
+        out.add("metadata: ${if (getMetadataMethod == null || metadataBlocked != null) "blocked (${metadataBlocked ?: "?"})" else "available"}")
+        for (d in bonded.take(8)) {
+            val conn = isConnected(d)
+            val nm = try { d.alias ?: d.name ?: "?" } catch (e: Exception) { "?" }
+            val keys = listOf("L" to META_LEFT_BATTERY, "R" to META_RIGHT_BATTERY, "case" to META_CASE_BATTERY)
+                .joinToString(" ") { "${it.first}=${metaBattery(d, it.second).let { v -> if (v < 0) "-" else v.toString() }}" }
+            val gb = deviceBattery(d).let { if (it < 0) "-" else it.toString() }
+            val bc = broadcastLevel[d.address]?.toString() ?: "-"
+            out.add("${if (conn) "*" else " "} $nm | meta $keys | getBatteryLevel=$gb | broadcast=$bc")
+        }
+        val b = last
+        out.add("source won: ${b?.source ?: "none"}; connected=${b?.connected}")
+        out.add("model: ${b?.model.orEmpty().ifBlank { "-" }}; companion: ${b?.companion ?: "-"}")
+        if (b != null && b.address.isNotEmpty()) out.add("picture: ${picture(a, b).source}")
+        out.add("resolver: $resolveNotes")
+        val sc = lastScan
+        if (sc != null) out.add("NothingX packages: ${sc.packages.joinToString().ifBlank { "none" }}; image candidates ${sc.all.size}; auto-picked ${sc.picked?.name ?: "none"}")
+        return out
+    }
 }
+

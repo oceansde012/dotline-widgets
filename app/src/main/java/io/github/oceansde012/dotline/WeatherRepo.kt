@@ -1,4 +1,4 @@
-package io.github.oceansde012.dotline
+﻿package io.github.oceansde012.dotline
 
 import android.content.Context
 import android.util.Log
@@ -51,6 +51,9 @@ object WeatherRepo {
     // --- location ----------------------------------------------------------------------------
 
     fun hasLocation(ctx: Context): Boolean = ctx.prefs().contains(K_LAT) && ctx.prefs().contains(K_LON)
+
+    /** `OK 200` or the last HTTP / network error text, for the diagnostics card */
+    fun lastStatus(ctx: Context): String = ctx.prefs().getString("status", null) ?: "no request yet"
 
     fun locationName(ctx: Context): String = ctx.prefs().getString(K_NAME, "") ?: ""
 
@@ -112,8 +115,10 @@ object WeatherRepo {
                     val w = fetch(p.getString(K_LAT, "")!!, p.getString(K_LON, "")!!)
                     save(a, w)
                     ok = true
+                    a.prefs().edit().putString("status", "OK 200").apply()
                 } catch (e: Exception) {
                     Log.w(TAG, "forecast failed", e)
+                    a.prefs().edit().putString("status", (e.message ?: e.javaClass.simpleName).take(80)).apply()
                 }
             } else {
                 ok = true
@@ -210,3 +215,4 @@ object WeatherRepo {
         }
     }
 }
+

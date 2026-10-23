@@ -1,7 +1,16 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- tile surface, radius 20dp: the provider picks the variant closest to R = min(26dp, 0.22 H) -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/nd_bg" />
-    <stroke android:width="1dp" android:color="@color/nd_stroke" />
-    <corners android:radius="20dp" />
-</shape>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- tile surface, radius 20dp: #101012 fill, 1.5dp #34343A stroke, 1dp top highlight (6% white). Provider picks the variant closest to R = min(26dp, 0.22 H) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/nd_bg" />
+            <stroke android:width="1.5dp" android:color="@color/nd_stroke" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <item android:left="20dp" android:right="20dp" android:top="1.5dp" android:height="1dp" android:gravity="top|fill_horizontal">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/nd_hi" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,5 +1,6 @@
-package io.github.oceansde012.dotline
+﻿package io.github.oceansde012.dotline
 
+import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -9,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.media.AudioManager
 import android.media.MediaMetadata
 import android.media.session.MediaController
@@ -19,12 +21,15 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
+import android.service.notification.StatusBarNotification
 import android.util.Log
 import android.view.KeyEvent
 
 /** What the player widget shows; null track = idle face. */
 class Track(
     val pkg: String,
+    /** the source app's name (`SPOTIFY` in the face) */
+    val appName: String,
     val title: String,
     val artist: String,
     val art: Bitmap?,
@@ -35,11 +40,16 @@ class Track(
     private val updateTime: Long,
     private val speed: Float,
     val sessionActivity: PendingIntent?,
+    /** an advertisement (Spotify): title as is, no progress */
+    val isAd: Boolean = false,
 ) {
     /** everything that needs a full (bitmap) update when it changes; position is not part of it */
-    val faceKey: List<Any?> = listOf(pkg, title, artist, artKey, durationMs, playing)
+    val faceKey: List<Any?> = listOf(pkg, appName, title, artist, artKey, durationMs, playing, isAd)
 
     val hasPosition: Boolean get() = position >= 0
+
+    /** the dot progress bar and the times exist only for a track with a known length */
+    val showProgress: Boolean get() = hasPosition && durationMs > 0 && !isAd
 
     /** PlaybackState extrapolation: position + (now - lastPositionUpdateTime) * speed */
     fun positionNow(): Long {
@@ -58,17 +68,22 @@ class Track(
  * Everything runs on the main thread. Rendering is event driven: session list changes and
  * MediaController callbacks trigger a re-render; the only timer is the progress tick, which runs
  * only while something is playing, the screen is interactive and a player widget exists.
+ *
+ * Weak sessions (no title / no art bitmap) are completed from the media notification of the same app
+ * (title, text, large icon) and from art URIs ([ArtLoader]).
  */
 object MediaTracker {
     private const val TAG = "NdMedia"
     private const val PREFS = "nd"
     private const val KEY_LAST_PKG = "last_pkg"
     private const val PAUSE_IDLE_MS = 30 * 60 * 1000L
+    const val SPOTIFY = "com.spotify.music"
 
     private val main = Handler(Looper.getMainLooper())
     private var app: Context? = null
     private var msm: MediaSessionManager? = null
-    private var listening = false
+    @Volatile var listening = false
+        private set
     private val watched = ArrayList<Pair<MediaController, MediaController.Callback>>()
 
     var controller: MediaController? = null
@@ -80,6 +95,10 @@ object MediaTracker {
     private var screenReceiverRegistered = false
     private var lastFace: List<Any?>? = null
     private var lastFaceValid = false
+
+    // completion data from media notifications, by package
+    private class NotifInfo(val title: String, val text: String, val art: Bitmap?)
+    private val notifs = HashMap<String, NotifInfo>()
 
     fun listenerComponent(ctx: Context) = ComponentName(ctx, MediaListenerService::class.java)
 
@@ -93,9 +112,8 @@ object MediaTracker {
     fun lastPackage(ctx: Context): String? =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LAST_PKG, null)
 
-    /** label of the last player app, for the idle face; null if unknown / uninstalled */
-    fun lastAppLabel(ctx: Context): String? {
-        val pkg = lastPackage(ctx) ?: return null
+    fun appLabelOrNull(ctx: Context, pkg: String?): String? {
+        if (pkg == null) return null
         return try {
             val pm = ctx.packageManager
             pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
@@ -104,13 +122,16 @@ object MediaTracker {
         }
     }
 
+    /** label of the last player app, for the idle face; null if unknown / uninstalled */
+    fun lastAppLabel(ctx: Context): String? = appLabelOrNull(ctx, lastPackage(ctx))
+
     /** Idempotent. Called by the listener service, the widget provider and the activity. */
     fun ensureStarted(ctx: Context) {
         val a = ctx.applicationContext
         app = a
         registerScreenReceiver(a)
         HeadWidgetProvider.registerRuntime(a)
-        LiveHost.ensure(a)   // battery / power / user-present / Bluetooth receivers of the power, weather and buds widgets
+        LiveHost.ensure(a)   // battery / power / user-present / Bluetooth / minute-tick receivers
         if (listening || !hasAccess(a)) return
         val m = a.getSystemService(MediaSessionManager::class.java) ?: return
         try {
@@ -167,10 +188,52 @@ object MediaTracker {
         watched.clear()
     }
 
+    // --- media notifications (weak metadata / art fallback) ------------------------------------
+
+    fun onNotification(ctx: Context, sbn: StatusBarNotification?, removed: Boolean = false) {
+        sbn ?: return
+        val n = sbn.notification ?: return
+        val isMedia = n.category == Notification.CATEGORY_TRANSPORT || n.extras.containsKey("android.mediaSession")
+        if (!isMedia) return
+        val pkg = sbn.packageName
+        val a = ctx.applicationContext
+        main.post {
+            if (removed) {
+                notifs.remove(pkg)
+            } else {
+                val x = n.extras
+                val title = x.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
+                val text = x.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
+                val art = try {
+                    n.getLargeIcon()?.loadDrawable(a)?.let { drawableToBitmap(it) }
+                        ?: @Suppress("DEPRECATION") x.getParcelable<Bitmap>("android.largeIcon.big")
+                        ?: @Suppress("DEPRECATION") x.getParcelable<Bitmap>(Notification.EXTRA_PICTURE)
+                } catch (e: Exception) {
+                    Log.w(TAG, "notification art", e)
+                    null
+                }
+                notifs[pkg] = NotifInfo(title, text, art ?: notifs[pkg]?.art)
+            }
+            reevaluate()
+        }
+    }
+
+    private fun drawableToBitmap(d: android.graphics.drawable.Drawable): Bitmap? {
+        val w = d.intrinsicWidth.takeIf { it > 0 } ?: 256
+        val h = d.intrinsicHeight.takeIf { it > 0 } ?: 256
+        val k = minOf(1f, 512f / maxOf(w, h))
+        val b = Bitmap.createBitmap((w * k).toInt().coerceAtLeast(1), (h * k).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        d.setBounds(0, 0, b.width, b.height)
+        d.draw(Canvas(b))
+        return b
+    }
+
+    fun notificationSummary(pkg: String): String = notifs[pkg]?.let { "title=${it.title.isNotEmpty()} art=${it.art != null}" } ?: "none"
+
     // state + metadata callbacks usually arrive in a burst: coalesce them into one render
     private val evaluate = Runnable { evaluateNow() }
 
-    private fun reevaluate() {
+    fun reevaluate() {
         main.removeCallbacks(evaluate)
         main.postDelayed(evaluate, 80)
     }
@@ -225,29 +288,46 @@ object MediaTracker {
      * recent PAUSED one (getActiveSessions is ordered by priority / recency). STOPPED, NONE and ERROR
      * are idle: such sessions are dead or stale.
      */
-    private fun pick(list: List<MediaController>): MediaController? =
+    fun pick(list: List<MediaController>): MediaController? =
         list.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
             ?: list.firstOrNull { isPlayingState(it.playbackState?.state) }
             ?: list.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PAUSED }
+
+    private fun nonBlank(s: String?): String? = s?.takeIf { it.isNotBlank() }
 
     private fun snapshot(ctx: Context, c: MediaController): Track {
         val md = c.metadata
         val ps = c.playbackState
         val pkg = c.packageName
-        val title = md?.getString(MediaMetadata.METADATA_KEY_TITLE)?.takeIf { it.isNotBlank() }
-            ?: md?.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)?.takeIf { it.isNotBlank() }
-            ?: appLabel(ctx, pkg)
-        val artist = md?.getString(MediaMetadata.METADATA_KEY_ARTIST)?.takeIf { it.isNotBlank() }
-            ?: md?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)?.takeIf { it.isNotBlank() }
-            ?: md?.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)?.takeIf { it.isNotBlank() }
+        val appName = appLabelOrNull(ctx, pkg) ?: ctx.getString(R.string.unknown_title)
+        val n = notifs[pkg]
+        val title = nonBlank(md?.getString(MediaMetadata.METADATA_KEY_TITLE))
+            ?: nonBlank(md?.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE))
+            ?: nonBlank(n?.title)
+            ?: appName
+        val artist = nonBlank(md?.getString(MediaMetadata.METADATA_KEY_ARTIST))
+            ?: nonBlank(md?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST))
+            ?: nonBlank(md?.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE))
+            ?: nonBlank(n?.text)?.takeIf { it != title }
             ?: ""
-        val art = md?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+        var art = md?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
             ?: md?.getBitmap(MediaMetadata.METADATA_KEY_ART)
             ?: md?.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+        if (art == null && md != null) {   // art only as a URI (Spotify): load it off the main thread
+            for (key in listOf(MediaMetadata.METADATA_KEY_ALBUM_ART_URI, MediaMetadata.METADATA_KEY_ART_URI, MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)) {
+                val u = nonBlank(md.getString(key)) ?: continue
+                art = ArtLoader.cached(u)
+                if (art != null) break
+                ArtLoader.request(ctx, u) { main.post { reevaluate() } }
+            }
+        }
+        if (art == null) art = n?.art   // last resort: the large icon of the media notification
         val duration = md?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
         val playing = isPlayingState(ps?.state)
+        val ad = pkg == SPOTIFY && (title.equals("Advertisement", true) || artist.isEmpty() || duration <= 0)
         return Track(
             pkg = pkg,
+            appName = appName,
             title = title,
             artist = artist,
             art = art,
@@ -258,6 +338,7 @@ object MediaTracker {
             updateTime = ps?.lastPositionUpdateTime ?: 0L,
             speed = ps?.playbackSpeed ?: 1f,
             sessionActivity = c.sessionActivity,
+            isAd = ad,
         )
     }
 
@@ -271,13 +352,6 @@ object MediaTracker {
             }
         }
         return h
-    }
-
-    private fun appLabel(ctx: Context, pkg: String): String = try {
-        val pm = ctx.packageManager
-        pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
-    } catch (e: Exception) {
-        ctx.getString(R.string.unknown_title)
     }
 
     // --- rendering ---------------------------------------------------------------------------
@@ -300,7 +374,7 @@ object MediaTracker {
             return
         }
         val t = track
-        val face = t?.faceKey
+        val face = t?.faceKey ?: listOf("idle", hasAccess(a))
         val faceChanged = !lastFaceValid || face != lastFace
         when {
             faceChanged -> {
@@ -312,7 +386,7 @@ object MediaTracker {
                 val targets = if (onlyId != null) intArrayOf(onlyId) else ids
                 for (id in targets) mgr.updateAppWidget(id, PlayerRenderer.full(a, mgr, id, t))
             }
-            t != null -> mgr.partiallyUpdateAppWidget(ids, PlayerRenderer.progress(a, t))
+            t != null && t.showProgress -> mgr.partiallyUpdateAppWidget(ids, PlayerRenderer.progress(a, t))
         }
         scheduleTick()
     }
@@ -324,7 +398,7 @@ object MediaTracker {
         val t = track ?: return
         val ids = playerIds(a)
         if (ids.isEmpty()) return
-        AppWidgetManager.getInstance(a).partiallyUpdateAppWidget(ids, PlayerRenderer.progress(a, t))
+        if (t.showProgress) AppWidgetManager.getInstance(a).partiallyUpdateAppWidget(ids, PlayerRenderer.progress(a, t))
         scheduleTick()
     }
 
@@ -332,7 +406,7 @@ object MediaTracker {
     private fun scheduleTick() {
         main.removeCallbacks(tick)
         val t = track ?: return
-        if (!t.playing || !screenOn || !t.hasPosition) return
+        if (!t.playing || !screenOn || !t.showProgress) return
         val pos = t.positionNow()
         val delay = ((1000 - pos % 1000) / t.speedOrOne()).toLong() + 20
         main.postDelayed(tick, delay.coerceIn(250L, 1500L))
@@ -364,6 +438,7 @@ object MediaTracker {
                 Intent.ACTION_SCREEN_ON -> {
                     screenOn = true
                     render(context)   // catch the progress up, restart the tick if playing
+                    Ticker.tick(context)
                 }
             }
         }
@@ -374,14 +449,35 @@ object MediaTracker {
     fun command(ctx: Context, action: String) {
         ensureStarted(ctx)
         val c = controller ?: freshPick(ctx)
-        when (action) {
-            PlayerWidgetProvider.ACTION_PREV -> c?.transportControls?.skipToPrevious()
-            PlayerWidgetProvider.ACTION_NEXT -> c?.transportControls?.skipToNext()
-            PlayerWidgetProvider.ACTION_PLAY_PAUSE -> when {
-                c == null -> mediaKey(ctx, KeyEvent.KEYCODE_MEDIA_PLAY)
-                isPlayingState(c.playbackState?.state) -> c.transportControls.pause()
-                else -> c.transportControls.play()
+        val actions = c?.playbackState?.actions ?: 0L
+        try {
+            when (action) {
+                PlayerWidgetProvider.ACTION_PREV ->
+                    if (c != null && actions and PlaybackState.ACTION_SKIP_TO_PREVIOUS != 0L) c.transportControls.skipToPrevious()
+                    else key(ctx, c, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+                PlayerWidgetProvider.ACTION_NEXT ->
+                    if (c != null && actions and PlaybackState.ACTION_SKIP_TO_NEXT != 0L) c.transportControls.skipToNext()
+                    else key(ctx, c, KeyEvent.KEYCODE_MEDIA_NEXT)
+                PlayerWidgetProvider.ACTION_PLAY_PAUSE -> when {
+                    c == null -> key(ctx, null, KeyEvent.KEYCODE_MEDIA_PLAY)
+                    isPlayingState(c.playbackState?.state) ->
+                        if (actions and (PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_PLAY_PAUSE) != 0L) c.transportControls.pause()
+                        else key(ctx, c, KeyEvent.KEYCODE_MEDIA_PAUSE)
+                    else ->
+                        if (actions and (PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PLAY_PAUSE) != 0L) c.transportControls.play()
+                        else key(ctx, c, KeyEvent.KEYCODE_MEDIA_PLAY)
+                }
             }
+        } catch (e: Exception) {
+            Log.w(TAG, "command $action failed, trying the media key", e)
+            key(
+                ctx, c,
+                when (action) {
+                    PlayerWidgetProvider.ACTION_PREV -> KeyEvent.KEYCODE_MEDIA_PREVIOUS
+                    PlayerWidgetProvider.ACTION_NEXT -> KeyEvent.KEYCODE_MEDIA_NEXT
+                    else -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                },
+            )
         }
     }
 
@@ -394,10 +490,20 @@ object MediaTracker {
         null
     }
 
-    /** no session: the system routes the key to the last media button receiver (resumes the last player) */
-    private fun mediaKey(ctx: Context, code: Int) {
+    /** media key to the session itself when it has no transport action, else (no session) to the system */
+    private fun key(ctx: Context, c: MediaController?, code: Int) {
+        val down = KeyEvent(KeyEvent.ACTION_DOWN, code)
+        val up = KeyEvent(KeyEvent.ACTION_UP, code)
+        if (c != null) {
+            try {
+                if (c.dispatchMediaButtonEvent(down) && c.dispatchMediaButtonEvent(up)) return
+            } catch (e: Exception) {
+                Log.w(TAG, "session media key", e)
+            }
+        }
         val am = ctx.getSystemService(AudioManager::class.java) ?: return
-        am.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, code))
-        am.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, code))
+        am.dispatchMediaKeyEvent(down)
+        am.dispatchMediaKeyEvent(up)
     }
 }
+

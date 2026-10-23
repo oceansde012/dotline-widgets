@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Time widget: HH and mm in the Doto hero font, both fg, one static red dot top-right. TextClock ticks on its own
-     (in the launcher process). Sizes are defaults for a ~190 dp high widget; ClockWidgetProvider
-     rescales them to the real widget size (DESIGN_SPEC.md 2.2). -->
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Time widget: HH and mm are our own dot-matrix bitmaps (DotText), one red dot top-right. ClockWidgetProvider
+     sizes and positions everything from the real widget size; the pv_* drawables only fill the picker preview
+     on Android < 15 (on 15+ the generated preview is the real render). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -13,39 +13,27 @@
         android:layout_height="match_parent"
         android:background="@drawable/nd_tile_r26" />
 
-    <LinearLayout
-        android:id="@+id/time_row"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+    <ImageView
+        android:id="@+id/hours"
+        android:layout_width="100dp"
+        android:layout_height="63dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="46dp"
+        android:layout_marginTop="22dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/pv_clock_h" />
 
-        <TextClock
-            android:id="@+id/hours"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="@font/hero"
-            android:format12Hour="hh"
-            android:format24Hour="HH"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:textColor="@color/nd_fg"
-            android:textSize="84dp" />
-
-        <TextClock
-            android:id="@+id/minutes"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="11dp"
-            android:fontFamily="@font/hero"
-            android:format12Hour="mm"
-            android:format24Hour="mm"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:textColor="@color/nd_fg"
-            android:textSize="84dp" />
-    </LinearLayout>
+    <ImageView
+        android:id="@+id/minutes"
+        android:layout_width="100dp"
+        android:layout_height="63dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="46dp"
+        android:layout_marginTop="108dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/pv_clock_m" />
 
     <ImageView
         android:id="@+id/dot"

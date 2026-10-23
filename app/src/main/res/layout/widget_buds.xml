@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Buds 2x1 (DESIGN_SPEC.md 2.6): dot earbuds glyph left, L / R and case levels (or one hero percent)
-     right. The XML defaults are the picker preview; BudsWidgetProvider recomputes sizes from the real widget size. -->
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Buds 2x1 (DESIGN_SPEC.md 2.6): earbuds picture on a plate left; right: model name, L / R dot-matrix readouts,
+     case level. BudsWidgetProvider positions everything from the real size; the defaults only fill the picker
+     preview on Android < 15. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -13,73 +14,80 @@
         android:background="@drawable/nd_tile_r14" />
 
     <ImageView
-        android:id="@+id/glyph"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_gravity="start|center_vertical"
-        android:layout_marginStart="12dp"
+        android:id="@+id/pic"
+        android:layout_width="62dp"
+        android:layout_height="42dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="10dp"
         android:importantForAccessibility="no"
         android:scaleType="fitXY"
-        android:src="@drawable/preview_buds" />
+        android:src="@drawable/pv_buds" />
 
-    <LinearLayout
-        android:id="@+id/col"
-        android:layout_width="80dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="start|center_vertical"
-        android:layout_marginStart="62dp"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/hero"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="@font/hero"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:textColor="@color/nd_fg"
-            android:textSize="28dp"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/line1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:fontFamily="@font/space_mono_regular"
-            android:includeFontPadding="false"
-            android:letterSpacing="0.08"
-            android:maxLines="2"
-            android:text="L 80 · R 75"
-            android:textColor="@color/nd_fg"
-            android:textSize="11dp" />
-
-        <TextView
-            android:id="@+id/line2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:ellipsize="end"
-            android:fontFamily="@font/space_mono_regular"
-            android:includeFontPadding="false"
-            android:letterSpacing="0.08"
-            android:maxLines="1"
-            android:text="CASE 40"
-            android:textColor="@color/nd_dim"
-            android:textSize="11dp" />
-    </LinearLayout>
-
-    <!-- accent: a bud at or below 15%; hidden in the preview -->
     <ImageView
-        android:id="@+id/dot"
-        android:layout_width="8dp"
-        android:layout_height="8dp"
-        android:layout_gravity="top|end"
+        android:id="@+id/badge"
+        android:layout_width="11dp"
+        android:layout_height="11dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="82dp"
         android:layout_marginTop="10dp"
-        android:layout_marginEnd="10dp"
         android:importantForAccessibility="no"
-        android:src="@drawable/nd_dot"
+        android:scaleType="fitXY"
         android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="60dp"
+        android:layout_height="12dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="82dp"
+        android:layout_marginTop="10dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/label_medium"
+        android:includeFontPadding="false"
+        android:letterSpacing="0.02"
+        android:maxLines="1"
+        android:text="NOTHING EAR (3)"
+        android:textColor="@color/nd_fg"
+        android:textSize="9.5dp" />
+
+    <ImageView
+        android:id="@+id/read_l"
+        android:layout_width="32dp"
+        android:layout_height="14dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="82dp"
+        android:layout_marginTop="25dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/pv_buds_read" />
+
+    <ImageView
+        android:id="@+id/read_r"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="82dp"
+        android:layout_marginTop="25dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/sub"
+        android:layout_width="60dp"
+        android:layout_height="12dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="82dp"
+        android:layout_marginTop="42dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/label_regular"
+        android:includeFontPadding="false"
+        android:letterSpacing="0.02"
+        android:maxLines="1"
+        android:text="CASE 40"
+        android:textColor="@color/nd_dim"
+        android:textSize="9.5dp" />
 
     <ImageView
         android:id="@+id/zone"

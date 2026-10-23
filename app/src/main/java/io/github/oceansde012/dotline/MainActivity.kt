@@ -1,8 +1,10 @@
-package io.github.oceansde012.dotline
+﻿package io.github.oceansde012.dotline
 
 import android.Manifest
 import android.app.Activity
 import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo
+import android.os.Build
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
@@ -46,6 +48,8 @@ class MainActivity : Activity() {
     companion object {
         const val SECTION_WEATHER = WeatherWidgetProvider.SECTION_WEATHER
         const val SECTION_BLUETOOTH = "bluetooth"
+        const val SECTION_NOTIFICATION = "notification"
+        private const val REQ_PICK_IMAGE = 21
         const val EXTRA_INSTALL = "install_update"
         const val EXTRA_CONFIRM = "confirm_intent"
         private const val REQ_NOTIF = 9
@@ -69,6 +73,21 @@ class MainActivity : Activity() {
     private lateinit var btCard: Card
     private lateinit var btButton: TextView
     private lateinit var locButton: TextView
+    private lateinit var notifStatus: TextView
+    private lateinit var budsName: TextView
+    private lateinit var budsResetBtn: TextView
+    private lateinit var nxGrid: LinearLayout
+
+    // diagnostics card
+    private lateinit var diagBody: TextView
+    private lateinit var diagCard: LinearLayout
+    private var diagOpen = true
+    private val diagTick = object : Runnable {
+        override fun run() {
+            if (diagOpen) diagBody.text = Diagnostics.report(this@MainActivity)
+            main.postDelayed(this, 1000)
+        }
+    }
     private lateinit var cityInput: EditText
     private lateinit var wxStatus: TextView
     private lateinit var wxResults: LinearLayout
@@ -120,6 +139,7 @@ class MainActivity : Activity() {
         scroll = requireViewById(R.id.scroll)
         content = requireViewById(R.id.content)
         buildHeader()
+        buildDiagnostics()
         buildSetup()
         buildGallery()
         buildSettings()
@@ -155,18 +175,26 @@ class MainActivity : Activity() {
         MediaTracker.ensureStarted(this)   // also starts the power / weather / buds receivers
         if (granted) MediaTracker.render(this, forceFull = true)
         WeatherRepo.refreshAsync(this, minAgeMs = 10 * 60 * 1000L) { runOnUiThread { if (!isDestroyed) refreshPreviews() } }
-        BudsRepo.refreshAsync(this)
+        BudsRepo.forgetTried()
+        BudsRepo.refreshAsync(this, force = true)
         PowerWidgetProvider.refresh(this)
+        ClockWidgetProvider.updateAll(this)
+        HeadWidgetProvider.updateAll(this)
+        WeatherWidgetProvider.updateAll(this)
         updateCards()
         refreshPreviews()
+        publishPickerPreviews()
         main.removeCallbacks(previewTick)
         main.post(previewTick)
+        main.removeCallbacks(diagTick)
+        main.post(diagTick)
         if (BuildConfig.UPDATES_ENABLED) onResumeUpdates()
         pendingSection?.let { section ->
             pendingSection = null
             when (section) {
                 SECTION_WEATHER -> focusCard(wxCard)
                 SECTION_BLUETOOTH -> focusCard(btCard)
+                SECTION_NOTIFICATION -> focusCard(notifCard)
             }
         }
     }
@@ -176,6 +204,7 @@ class MainActivity : Activity() {
         Updater.foreground = false
         Updater.onChange = null
         main.removeCallbacks(previewTick)
+        main.removeCallbacks(diagTick)
         main.removeCallbacks(searchRun)
         locating?.cancel()
         locating = null
@@ -184,17 +213,57 @@ class MainActivity : Activity() {
     // --- header ------------------------------------------------------------------------------
 
     private fun buildHeader() {
-        val title = ui.text(getString(R.string.header_title), 30f, Nd.FG, ui.heroFont).apply {
-            maxLines = 1
-            setAutoSizeTextTypeUniformWithConfiguration(18, 30, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
-        }
-        content.addView(title, ui.lp(top = 8))
+        // the wordmark is dot-matrix drawn by DotText (no font involved)
+        val avail = (resources.configuration.screenWidthDp - 40).toFloat()
+        val title = ui.dots(getString(R.string.header_title), minOf(5f, avail / DotText.cols(getString(R.string.header_title))))
+        content.addView(title, ui.lp(w = title.layoutParams.width, h = title.layoutParams.height, top = 8))
         val version = try {
             packageManager.getPackageInfo(packageName, 0).versionName ?: ""
         } catch (e: Exception) {
             ""
         }
         content.addView(ui.label(getString(R.string.header_version, version)), ui.lp(top = 6, bottom = 4))
+    }
+
+    // --- diagnostics -------------------------------------------------------------------------
+
+    /** live facts (access, sessions, Bluetooth sources, weather, battery, updater), refreshed every second while shown */
+    private fun buildDiagnostics() {
+        section(R.string.sec_diag)
+        diagCard = ui.vertical().apply {
+            setBackgroundResource(R.drawable.nd_tile_r22)
+            setPadding(ui.dp(16), ui.dp(8), ui.dp(16), ui.dp(16))
+        }
+        val head = ui.horizontal().apply { minimumHeight = ui.dp(48) }
+        val arrow = ui.label(if (diagOpen) "−" else "+", Nd.FG, 14f)
+        head.addView(ui.label(getString(R.string.diag_title), Nd.FG, 12f), ui.lp(w = 0, weight = 1f))
+        head.addView(arrow)
+        diagCard.addView(head, ui.lp())
+        diagBody = ui.text("", 10.5f, Nd.DIM, ui.mono).apply {
+            setTextIsSelectable(true)
+            setLineSpacing(0f, 1.15f)
+        }
+        val body = ui.vertical()
+        body.addView(diagBody, ui.lp())
+        body.addView(ui.button(getString(R.string.btn_open_settings_notif), primary = true).apply {
+            setOnClickListener { openAccessSettings() }
+        }, ui.lp(top = 12))
+        body.addView(ui.button(getString(R.string.btn_copy_report), primary = false).apply {
+            setOnClickListener {
+                val cm = getSystemService(android.content.ClipboardManager::class.java)
+                cm?.setPrimaryClip(android.content.ClipData.newPlainText("Dotline report", Diagnostics.report(this@MainActivity)))
+                Toast.makeText(this@MainActivity, R.string.report_copied, Toast.LENGTH_SHORT).show()
+            }
+        }, ui.lp(top = 8))
+        diagCard.addView(body, ui.lp())
+        head.setOnClickListener {
+            diagOpen = !diagOpen
+            body.visibility = if (diagOpen) View.VISIBLE else View.GONE
+            arrow.text = if (diagOpen) "−" else "+"
+            if (diagOpen) diagBody.text = Diagnostics.report(this)
+        }
+        diagBody.text = Diagnostics.report(this)
+        content.addView(diagCard, ui.lp())
     }
 
     private fun section(titleRes: Int) {
@@ -240,15 +309,19 @@ class MainActivity : Activity() {
         }
 
         /** a state change collapses (granted) or opens (lost) the card; no change keeps what the user chose */
-        fun update(isDone: Boolean) {
+        fun update(isDone: Boolean, isCurrent: Boolean = true) {
             if (!init || isDone != done) expanded = !isDone
             init = true
             done = isDone
+            current = isCurrent
             apply()
         }
 
+        /** the first step that is not done yet: red dot; later steps: unlit dot */
+        private var current = true
+
         private fun apply() {
-            dot.setBackgroundResource(if (done) R.drawable.nd_dot_fg else R.drawable.nd_dot)
+            dot.setBackgroundResource(if (done) R.drawable.nd_dot_fg else if (current) R.drawable.nd_dot else R.drawable.nd_dot_off)
             status.visibility = if (done) View.VISIBLE else View.GONE
             header.setBackgroundResource(if (done) R.drawable.nd_row else 0)
             header.isClickable = done
@@ -267,14 +340,24 @@ class MainActivity : Activity() {
         buildNotificationCard()
         buildWeatherCard()
         buildBluetoothCard()
+        // the order of the first-run walk: 1 notification access, 2 Bluetooth, 3 city
         content.addView(notifCard.root, ui.lp(bottom = 12))
+        content.addView(btCard.root, ui.lp(bottom = 12))
         content.addView(wxCard.root, ui.lp(bottom = 12))
-        content.addView(btCard.root, ui.lp())
+        val budsCard = ui.vertical().apply {
+            setBackgroundResource(R.drawable.nd_tile_r22)
+            setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(16))
+        }
+        budsCard.addView(ui.label(getString(R.string.buds_picture_title), Nd.FG, 12f))
+        buildBudsPicture(budsCard)
+        content.addView(budsCard, ui.lp())
     }
 
     private fun buildNotificationCard() {
         val b = notifCard.body
-        b.addView(ui.body(getString(R.string.notif_body)), ui.lp())
+        notifStatus = ui.label("", Nd.FG, 12f)
+        b.addView(notifStatus, ui.lp(start = 2))
+        b.addView(ui.body(getString(R.string.notif_body)), ui.lp(top = 6))
         b.addView(ui.button(getString(R.string.btn_open_settings), primary = true).apply {
             setOnClickListener { openAccessSettings() }
         }, ui.lp(top = 12))
@@ -338,17 +421,120 @@ class MainActivity : Activity() {
         b.addView(btButton, ui.lp(top = 12))
     }
 
+    // --- earbuds picture (the widget's left side) -------------------------------------------------
+
+    private fun buildBudsPicture(b: LinearLayout) {
+        budsName = ui.label("", Nd.FG, 12f)
+        b.addView(budsName, ui.lp(top = 16, start = 2))
+        val row = ui.horizontal()
+        row.addView(ui.button(getString(R.string.btn_choose_picture), primary = false).apply {
+            setOnClickListener { pickPicture() }
+        }, ui.lp(w = 0, weight = 1f, end = 8))
+        budsResetBtn = ui.button(getString(R.string.btn_reset), primary = false).apply {
+            setOnClickListener { BudsRepo.current(this@MainActivity).let { BudsRepo.resetUserPicture(this@MainActivity, it) }; refreshAfterBuds() }
+        }
+        row.addView(budsResetBtn, ui.lp(w = Ui.WRAP))
+        b.addView(row, ui.lp(top = 8))
+        b.addView(ui.button(getString(R.string.btn_from_nothing_x), primary = false).apply {
+            setOnClickListener { loadNothingXGrid() }
+        }, ui.lp(top = 8))
+        b.addView(ui.body(getString(R.string.buds_picture_note), Nd.DIM, 12f), ui.lp(top = 6, start = 2))
+        nxGrid = ui.vertical()
+        b.addView(nxGrid, ui.lp(top = 8))
+    }
+
+    private fun pickPicture() {
+        val i = Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*")
+        try {
+            @Suppress("DEPRECATION")
+            startActivityForResult(i, REQ_PICK_IMAGE)
+        } catch (e: ActivityNotFoundException) {
+            Log.w(TAG, "no document picker", e)
+            Toast.makeText(this, R.string.no_picker, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    @Deprecated("framework result callback, no AndroidX here")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_PICK_IMAGE || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        val app = applicationContext
+        Thread {
+            val bmp = try { ArtLoader.decode(app, uri.toString()) } catch (e: Exception) { Log.w(TAG, "picked image", e); null }
+            if (bmp != null) BudsRepo.setUserPicture(app, BudsRepo.current(app), bmp)
+            runOnUiThread { if (!isDestroyed) refreshAfterBuds() }
+        }.start()
+    }
+
+    private fun refreshAfterBuds() {
+        updateCards()
+        refreshPreviews()
+    }
+
+    /** thumbnails of every product-image-looking bitmap in the installed Nothing X app; tap one to use it */
+    private fun loadNothingXGrid() {
+        nxGrid.removeAllViews()
+        nxGrid.addView(ui.label(getString(R.string.wx_searching), Nd.DIM))
+        val app = applicationContext
+        Thread {
+            val scan = BudsRepo.scanNothingX(app, BudsRepo.current(app).model)
+            val cands = BudsRepo.pickerCandidates(app)
+            val thumbs = cands.mapNotNull { c -> BudsRepo.decodeCand(app, c, 160)?.let { c to it } }
+            runOnUiThread {
+                if (isDestroyed) return@runOnUiThread
+                nxGrid.removeAllViews()
+                if (thumbs.isEmpty()) {
+                    nxGrid.addView(ui.body(
+                        if (scan.packages.isEmpty()) getString(R.string.nx_not_installed) else getString(R.string.nx_none_found, scan.all.size),
+                        Nd.DIM, 12f))
+                    return@runOnUiThread
+                }
+                var row: LinearLayout? = null
+                thumbs.forEachIndexed { i, (c, bmp) ->
+                    if (i % 4 == 0) {
+                        row = ui.horizontal().also { nxGrid.addView(it, ui.lp(top = 6)) }
+                    }
+                    val iv = android.widget.ImageView(this).apply {
+                        setImageBitmap(bmp)
+                        scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                        setBackgroundResource(R.drawable.nd_row)
+                        setOnClickListener {
+                            Thread {
+                                BudsRepo.decodeCand(app, c, 256)?.let { BudsRepo.setUserPicture(app, BudsRepo.current(app), it) }
+                                runOnUiThread { if (!isDestroyed) { nxGrid.removeAllViews(); refreshAfterBuds() } }
+                            }.start()
+                        }
+                        contentDescription = c.name
+                    }
+                    row!!.addView(iv, ui.lp(w = 0, h = ui.dp(72), weight = 1f, end = 6))
+                }
+            }
+        }.start()
+    }
+
     /** re-checks every requirement; called from onResume so coming back from system settings updates the list */
     private fun updateCards() {
-        notifCard.update(MediaTracker.hasAccess(this))
+        val access = MediaTracker.hasAccess(this)
+        val bt = BudsRepo.hasPermission(this)
         val hasCity = WeatherRepo.hasLocation(this)
-        wxCard.update(hasCity)
+        // first-run walk: the first step that is not done is the current one (red dot)
+        notifCard.update(access, isCurrent = true)
+        btCard.update(bt, isCurrent = access)
+        wxCard.update(hasCity, isCurrent = access && bt)
+        notifCard.setTitle("1 · " + getString(R.string.notif_title))
+        btCard.setTitle("2 · " + getString(R.string.bt_title))
         wxCard.setTitle(
-            if (hasCity) getString(R.string.wx_title_city, WeatherRepo.locationName(this).uppercase())
+            "3 · " + if (hasCity) getString(R.string.wx_title_city, WeatherRepo.locationName(this).uppercase())
             else getString(R.string.wx_title)
         )
-        val bt = BudsRepo.hasPermission(this)
-        btCard.update(bt)
+        notifStatus.text = getString(if (access) R.string.notif_status_yes else R.string.notif_status_no)
+        notifStatus.setTextColor(if (access) Nd.FG else Nd.ACCENT)
+        val b = BudsRepo.current(this)
+        budsName.text = if (b.address.isEmpty()) getString(R.string.buds_picture_none)
+        else getString(R.string.buds_picture_for, b.title.ifBlank { b.name }, BudsRepo.picture(this, b).source)
+        budsResetBtn.alpha = if (BudsRepo.hasUserPicture(this, b)) 1f else 0.4f
         btButton.text = getString(if (btBlocked && !bt) R.string.btn_open_app_settings else R.string.btn_allow)
         locButton.text = getString(if (locBlocked) R.string.btn_open_app_settings else R.string.btn_use_location)
     }
@@ -591,7 +777,7 @@ class MainActivity : Activity() {
         val avail = (resources.configuration.screenWidthDp - 40).toFloat().coerceAtLeast(200f)
         val wide = minOf(avail, 380f)
         addWidgetCard(R.string.gallery_player, R.string.player_widget_desc, PlayerWidgetProvider::class.java, wide, 160f) { c, w, h ->
-            PlayerRenderer.full(c, w, h, MediaTracker.track ?: demoTrack(c))
+            PlayerRenderer.full(c, w, h, MediaTracker.track)   // the real state, never a sample
         }.also { playerPreview = it }
         addWidgetCard(R.string.gallery_head, R.string.head_widget_desc, HeadWidgetProvider::class.java, wide, 56f, { c, w, h -> HeadWidgetProvider.buildPreview(c, w, h) })
         addWidgetCard(R.string.gallery_clock, R.string.clock_widget_desc, ClockWidgetProvider::class.java, minOf(avail, 220f), 150f, { c, w, h -> ClockWidgetProvider.buildPreview(c, w, h) })
@@ -600,20 +786,31 @@ class MainActivity : Activity() {
         addWidgetCard(R.string.gallery_buds, R.string.buds_widget_desc, BudsWidgetProvider::class.java, 150f, 62f, { c, w, h -> BudsWidgetProvider.buildPreview(c, w, h) })
     }
 
-    /** a paused sample track for the player preview when no media is playing (a stale real track is never faked) */
-    private fun demoTrack(c: Context) = Track(
-        pkg = c.packageName,
-        title = c.getString(R.string.demo_title),
-        artist = c.getString(R.string.demo_artist),
-        art = null,
-        artKey = 0L,
-        durationMs = 243_000L,
-        playing = false,
-        position = 84_000L,
-        updateTime = 0L,
-        speed = 1f,
-        sessionActivity = null,
-    )
+    /**
+     * Android 15+: generated widget previews for the picker, rendered by the same code as the home screen
+     * (the layout previews are only the fallback for older versions). Rate limited by the system, so failures are ignored.
+     */
+    private fun publishPickerPreviews() {
+        if (Build.VERSION.SDK_INT < 35) return
+        val mgr = getSystemService(AppWidgetManager::class.java) ?: return
+        val dm = resources.displayMetrics
+        fun dp(px: Int) = px / dm.density
+        val entries = listOf(
+            Triple(PlayerWidgetProvider::class.java, 380f, 165f) to { c: Context, w: Float, h: Float -> PlayerRenderer.full(c, w, h, MediaTracker.track) },
+            Triple(HeadWidgetProvider::class.java, 380f, 58f) to { c: Context, w: Float, h: Float -> HeadWidgetProvider.buildPreview(c, w, h) },
+            Triple(ClockWidgetProvider::class.java, 230f, 190f) to { c: Context, w: Float, h: Float -> ClockWidgetProvider.buildPreview(c, w, h) },
+            Triple(WeatherWidgetProvider::class.java, 150f, 150f) to { c: Context, w: Float, h: Float -> WeatherWidgetProvider.buildPreview(c, w, h) },
+            Triple(PowerWidgetProvider::class.java, 230f, 62f) to { c: Context, w: Float, h: Float -> PowerWidgetProvider.buildPreview(c, w, h) },
+            Triple(BudsWidgetProvider::class.java, 160f, 62f) to { c: Context, w: Float, h: Float -> BudsWidgetProvider.buildPreview(c, w, h) },
+        )
+        for ((spec, build) in entries) {
+            try {
+                mgr.setWidgetPreview(ComponentName(this, spec.first), AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN, build(this, spec.second, spec.third))
+            } catch (e: Throwable) {
+                Log.w(TAG, "setWidgetPreview ${spec.first.simpleName}", e)
+            }
+        }
+    }
 
     private fun addWidgetCard(
         titleRes: Int, descRes: Int, provider: Class<*>, w: Float, h: Float,
@@ -836,3 +1033,4 @@ class MainActivity : Activity() {
         content.addView(ui.body(getString(R.string.footer_fonts), Nd.DIM, 11f), ui.lp(top = 4, start = 4))
     }
 }
+

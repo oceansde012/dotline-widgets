@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Open-Meteo forecast + geocoding -->
@@ -26,8 +26,37 @@
         <intent>
             <action android:name="android.intent.action.POWER_USAGE_SUMMARY" />
         </intent>
+        <intent>
+            <action android:name="android.settings.BATTERY_SAVER_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.BLUETOOTH_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.NOTIFICATION_LISTENER_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.NOTIFICATION_LISTENER_DETAIL_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_CALENDAR" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="content" android:host="com.android.calendar" />
+        </intent>
+        <!-- Spotify, clocks, calendars, battery care, earbud companion apps (their images / launch intents) -->
+        <package android:name="com.spotify.music" />
+        <package android:name="com.sec.android.app.clockpackage" />
+        <package android:name="com.google.android.deskclock" />
+        <package android:name="com.samsung.android.calendar" />
+        <package android:name="com.google.android.calendar" />
+        <package android:name="com.samsung.android.lool" />
+        <package android:name="com.nothing.smartcenter" />
+        <package android:name="com.nothing.hearthstone" />
+        <package android:name="com.samsung.android.app.watchmanager" />
     </queries>
-
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -76,6 +105,9 @@
             android:label="@string/clock_widget_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <!-- clock / zone changes; the minute tick is runtime-registered (LiveHost) + the Ticker alarm -->
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -159,3 +191,5 @@
             android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 </manifest>
+
+

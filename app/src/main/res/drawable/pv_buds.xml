@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- picker preview of the earbuds picture (Android < 15): flat stem-style pair, our own artwork -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="62dp"
+    android:height="42dp"
+    android:viewportWidth="172"
+    android:viewportHeight="160">
+    <path android:fillColor="#1A1A1D" android:pathData="M0,0h172v160h-172z" />
+    <path android:fillColor="#3A3A3E" android:strokeColor="#5A5A60" android:strokeWidth="3"
+        android:pathData="M14,45a36,39 0 1,0 72,0a36,39 0 1,0 -72,0zM33,70h34v64a17,17 0 0,1 -34,0z" />
+    <path android:fillColor="#3A3A3E" android:strokeColor="#5A5A60" android:strokeWidth="3"
+        android:pathData="M86,45a36,39 0 1,0 72,0a36,39 0 1,0 -72,0zM105,70h34v64a17,17 0 0,1 -34,0z" />
+    <path android:fillColor="#F2F2F2" android:pathData="M45,120h12v13h-12zM117,120h12v13h-12z" />
+</vector>

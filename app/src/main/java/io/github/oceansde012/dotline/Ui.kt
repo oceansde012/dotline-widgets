@@ -8,19 +8,21 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import kotlin.math.roundToInt
 
 /**
- * Tiny view factory for the app screen (no AndroidX, no layout XML per card). Three type roles as in
- * DESIGN_SPEC.md section 1: hero (header: Doto), space_mono_regular caps (labels, buttons), system sans (body).
+ * Tiny view factory for the app screen (no AndroidX, no layout XML per card). Type roles as in
+ * DESIGN_SPEC.md section 1: dot-matrix header (drawn by [DotText]), IBM Plex Mono labels / buttons,
+ * system sans body.
  */
 internal class Ui(private val ctx: Context) {
     private val density = ctx.resources.displayMetrics.density
 
-    val heroFont: Typeface = ctx.resources.getFont(R.font.hero)
-    val mono: Typeface = ctx.resources.getFont(R.font.space_mono_regular)
+    val mono: Typeface = ctx.resources.getFont(R.font.label_regular)
+    val monoMedium: Typeface = ctx.resources.getFont(R.font.label_medium)
 
     fun dp(v: Int): Int = (v * density).roundToInt()
 
@@ -33,8 +35,17 @@ internal class Ui(private val ctx: Context) {
             letterSpacing = spacing
         }
 
-    /** Space Mono caps label, 0.08 em tracking */
-    fun label(s: CharSequence, color: Int = Nd.DIM, sp: Float = 11f): TextView = text(s, sp, color, mono, 0.08f)
+    /** the dot-matrix header / numerals as a view */
+    fun dots(s: String, pitchDp: Float, color: Int = Nd.FG): ImageView = ImageView(ctx).apply {
+        val a = DotText.art(s, pitchDp, density, color)
+        setImageBitmap(a.bmp)
+        scaleType = ImageView.ScaleType.FIT_XY
+        layoutParams = LinearLayout.LayoutParams(dp(a.wDp.roundToInt()), dp(a.hDp.roundToInt()))
+        importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+    }
+
+    /** IBM Plex Mono label, 0.04 em tracking */
+    fun label(s: CharSequence, color: Int = Nd.DIM, sp: Float = 11f): TextView = text(s, sp, color, mono, 0.04f)
 
     /** system sans body text */
     fun body(s: CharSequence, color: Int = Nd.DIM, sp: Float = 14f): TextView =
@@ -44,8 +55,8 @@ internal class Ui(private val ctx: Context) {
     fun button(s: CharSequence, primary: Boolean): Button = Button(ctx).apply {
         text = s
         isAllCaps = false
-        typeface = mono
-        letterSpacing = 0.08f
+        typeface = monoMedium
+        letterSpacing = 0.04f
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
         setTextColor(if (primary) Color.BLACK else Nd.FG)
         setBackgroundResource(if (primary) R.drawable.nd_btn_primary else R.drawable.nd_button)

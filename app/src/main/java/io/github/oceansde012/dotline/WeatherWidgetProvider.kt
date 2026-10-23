@@ -1,21 +1,21 @@
 package io.github.oceansde012.dotline
 
-import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.text.format.DateFormat
+import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import java.util.Date
 import kotlin.math.roundToInt
 
 /**
- * Weather widget 2x2 (DESIGN_SPEC.md 2.3): dot weather icon, hero temperature, condition label, `H 12° · L 6°`.
- * Data comes from [WeatherRepo]; this class only renders what is cached, so a resize never hits the network.
+ * Weather widget 2x2 (DESIGN_SPEC.md 2.3): dot icon top-left, dot-matrix temperature filling the middle,
+ * condition label + `H 12° · L 6°` at the bottom. Data comes from [WeatherRepo]; this class only renders
+ * what is cached, so a resize never hits the network.
  */
 class WeatherWidgetProvider : AppWidgetProvider() {
 
@@ -33,7 +33,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
     override fun onAppWidgetOptionsChanged(
         context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle,
     ) {
-        appWidgetManager.updateAppWidget(appWidgetId, build(context, appWidgetManager, appWidgetId))
+        updateAll(context)
     }
 
     override fun onDisabled(context: Context) {
@@ -46,7 +46,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         private const val REQ_OPEN = 120
         private const val RAIN_SOON_MS = 60 * 60 * 1000L
 
-        /** the same face the home screen gets, for a [widthDp] x [heightDp] tile (the app's widget gallery) */
+        /** the same face the home screen gets, for a [widthDp] x [heightDp] tile (gallery, generated picker preview) */
         fun buildPreview(ctx: Context, widthDp: Float, heightDp: Float): RemoteViews =
             WeatherWidgetProvider().render(ctx.applicationContext, widthDp, heightDp)
 
@@ -56,13 +56,15 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             val ids = mgr.getAppWidgetIds(ComponentName(a, WeatherWidgetProvider::class.java))
             if (ids.isEmpty()) return
             val p = WeatherWidgetProvider()
-            for (id in ids) mgr.updateAppWidget(id, p.build(a, mgr, id))
+            for (id in ids) {
+                val sz = WidgetSize.of(a, mgr, id, 150f, 150f)
+                try {
+                    mgr.updateAppWidget(id, p.render(a, sz.width, sz.height))
+                } catch (e: Exception) {
+                    Log.w("NdWeatherW", "render failed", e)
+                }
+            }
         }
-    }
-
-    private fun build(ctx: Context, mgr: AppWidgetManager, id: Int): RemoteViews {
-        val sz = WidgetSize.of(ctx, mgr, id, 150f, 150f)
-        return render(ctx, sz.width, sz.height)
     }
 
     private fun render(ctx: Context, w: Float, h: Float): RemoteViews {
@@ -70,47 +72,53 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val density = ctx.resources.displayMetrics.density
         val rv = RemoteViews(ctx.packageName, R.layout.widget_weather)
         Tile.apply(rv, R.id.tile, R.id.zone, h)
+        rv.setOnClickPendingIntent(R.id.zone, Taps.app(ctx, REQ_OPEN, SECTION_WEATHER))
 
-        val iconDp = (0.25f * h).coerceIn(28f, 44f)
+        // vertical plan: icon | temperature fills the rest | text block (label + sub) on the bottom line
+        val label = (0.085f * h).coerceIn(11f, 13f)
+        val showSub = h >= 100f
+        val blockH = label * 1.25f + (if (showSub) 4f + (label - 1f) * 1.25f else 0f)
+        val iconDp = (0.24f * h).coerceIn(26f, 46f)
+        val gap = 6f
+        val blockTop = h - pad - blockH
+        val tempBox = (blockTop - gap) - (pad + iconDp + gap)
+
         rv.margins(R.id.icon, start = pad, top = pad)
         rv.size(R.id.icon, iconDp, iconDp)
-        val temp = (0.27f * h).coerceIn(28f, 50f)
-        rv.setTextViewTextSize(R.id.temp, DIP, temp)
-        rv.margins(R.id.temp, start = pad, top = pad + iconDp + 0.02f * h)
-        val label = (0.085f * h).coerceIn(11f, 13f)
         rv.setTextViewTextSize(R.id.label, DIP, label)
         rv.setTextViewTextSize(R.id.sub, DIP, label - 1f)
-        rv.margins(R.id.text_block, start = pad, bottom = pad)
-        rv.setViewLayoutWidth(R.id.text_block, (w - 2f * pad).coerceAtLeast(60f), DIP)
-        rv.setViewVisibility(R.id.sub, if (h >= 100f) View.VISIBLE else View.GONE)
+        rv.place(R.id.text_block, pad, blockTop, (w - 2f * pad).coerceAtLeast(60f), blockH)
+        rv.setViewVisibility(R.id.sub, if (showSub) View.VISIBLE else View.GONE)
         val dot = maxOf(6f, 0.055f * h)
         rv.size(R.id.dot, dot, dot)
         rv.margins(R.id.dot, top = pad, end = pad)
         rv.setViewVisibility(R.id.dot, View.GONE)
-
-        // city: only when the widget is at least 3 cells wide; sits between the icon and the accent dot
-        val cityStart = pad + iconDp + 10f
-        rv.margins(R.id.city, start = cityStart, top = pad + (iconDp - label) / 2f, end = pad + dot + 8f)
-        rv.setTextViewTextSize(R.id.city, DIP, label - 1f)
         rv.setViewVisibility(R.id.city, View.GONE)
+        rv.setViewVisibility(R.id.temp, View.VISIBLE)
 
-        val open = openApp(ctx)
-        rv.setOnClickPendingIntent(R.id.zone, open)
+        fun temp(text: String, color: Int) {
+            val pitch = DotText.pitchFor(text, w - 2f * pad, tempBox.coerceAtLeast(14f))
+            val art = DotText.art(text, pitch, density, color)
+            rv.putArt(R.id.temp, art)
+            val y = pad + iconDp + gap + (tempBox - art.hDp) / 2f
+            rv.margins(R.id.temp, start = pad, top = y)
+        }
+        fun icon(kind: WeatherArt.Kind, color: Int) =
+            rv.setImageViewBitmap(R.id.icon, WeatherArt.weather(kind, WeatherArt.px(iconDp, density), color))
 
         if (!WeatherRepo.hasLocation(ctx)) {
-            rv.setImageViewBitmap(R.id.icon, WeatherArt.weather(WeatherArt.Kind.CLOUD, WeatherArt.px(iconDp, density), Nd.FAINT))
-            rv.setViewVisibility(R.id.temp, View.GONE)
-            rv.setViewVisibility(R.id.sub, View.GONE)
+            icon(WeatherArt.Kind.CLOUD, Nd.FAINT)
+            temp("--°", Nd.FAINT)
             rv.setTextViewText(R.id.label, ctx.getString(R.string.wx_set_city))
             rv.setTextColor(R.id.label, Nd.FG)
+            rv.setTextViewText(R.id.sub, ctx.getString(R.string.wx_set_city_hint))
             return rv
         }
 
         val wx = WeatherRepo.cached(ctx)
         if (wx == null) {
-            rv.setImageViewBitmap(R.id.icon, WeatherArt.weather(WeatherArt.Kind.CLOUD, WeatherArt.px(iconDp, density), Nd.FAINT))
-            rv.setTextViewText(R.id.temp, "--°")
-            rv.setTextColor(R.id.temp, Nd.FAINT)
+            icon(WeatherArt.Kind.CLOUD, Nd.FAINT)
+            temp("--°", Nd.FAINT)
             rv.setTextViewText(R.id.label, ctx.getString(R.string.wx_no_data))
             rv.setTextColor(R.id.label, Nd.FAINT)
             rv.setTextViewText(R.id.sub, WeatherRepo.locationName(ctx).uppercase())
@@ -119,10 +127,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
 
         val now = System.currentTimeMillis()
         val stale = now - wx.fetchedAt > WeatherRepo.STALE_MS
-        val kind = WeatherArt.kind(wx.code, wx.isDay)
-        rv.setImageViewBitmap(R.id.icon, WeatherArt.weather(kind, WeatherArt.px(iconDp, density), if (stale) Nd.FAINT else Nd.FG))
-        rv.setTextViewText(R.id.temp, deg(ctx, wx.temp))
-        rv.setTextColor(R.id.temp, if (stale) Nd.DIM else Nd.FG)
+        icon(WeatherArt.kind(wx.code, wx.isDay), if (stale) Nd.FAINT else Nd.FG)
+        temp(deg(ctx, wx.temp), if (stale) Nd.DIM else Nd.FG)
 
         if (stale) {
             val pattern = if (DateFormat.is24HourFormat(ctx)) "HH:mm" else "h:mm a"
@@ -144,7 +150,9 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             rv.setTextViewText(R.id.sub, ctx.getString(R.string.wx_hi_lo, deg(ctx, wx.hi), deg(ctx, wx.lo)))
         }
 
-        if (w >= 200f) {
+        if (w >= 200f) {   // city: sits between the icon and the accent dot
+            rv.margins(R.id.city, start = pad + iconDp + 10f, top = pad + (iconDp - label) / 2f, end = pad + dot + 8f)
+            rv.setTextViewTextSize(R.id.city, DIP, label - 1f)
             rv.setTextViewText(R.id.city, WeatherRepo.locationName(ctx).uppercase())
             rv.setViewVisibility(R.id.city, View.VISIBLE)
         }
@@ -171,12 +179,4 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             else -> R.string.wx_cloudy
         }
     )
-
-    /** tap: this app's weather section (also where a missing city is chosen) */
-    private fun openApp(ctx: Context): PendingIntent {
-        val i = Intent(ctx, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .putExtra(EXTRA_SECTION, SECTION_WEATHER)
-        return PendingIntent.getActivity(ctx, REQ_OPEN, i, immutable())
-    }
 }

@@ -78,3 +78,14 @@ internal fun RemoteViews.margins(
 }
 
 internal fun immutable(): Int = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+
+internal fun RemoteViews.place(id: Int, x: Float, y: Float, w: Float, h: Float) {
+    margins(id, start = x, top = y)
+    size(id, w, h)
+}
+
+/** shows a rendered dot text / bar in an ImageView, sized exactly (dp) */
+internal fun RemoteViews.putArt(id: Int, a: DotText.Art) {
+    setImageViewBitmap(id, a.bmp)
+    size(id, a.wDp, a.hDp)
+}

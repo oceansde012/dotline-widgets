@@ -14,27 +14,38 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
- * Player geometry in dp (DESIGN_SPEC.md 2.4). P and R come from [Tile]; the cover is a square of
- * H - 2P at the left, the right column holds title, artist, dot bar, times and the controls.
+ * Player geometry in dp (DESIGN_SPEC.md 2.4). P and R come from [Tile].
+ *
+ * Playing / paused: cover = H - 2P square at the left; the right column is laid out on three lines of one
+ * grid: title block top-aligned to the cover top, progress group centred between block and controls,
+ * controls bottom-aligned to the cover bottom.
+ * Idle: a compact row, vertically centred: 56%-height cover, title + hint, round play button on the right.
  */
-class PlayerGeom(val w: Float, val h: Float) {
+class PlayerGeom(val w: Float, val h: Float, val idle: Boolean) {
     val pad = Tile.pad(h)
     val radius = Tile.radius(h)
-    val cover = (h - 2f * pad).coerceAtLeast(40f)
+    val cover = if (idle) (0.56f * h).coerceAtLeast(36f) else (h - 2f * pad).coerceAtLeast(40f)
+    val coverY = if (idle) (h - cover) / 2f else pad
     val colX = pad + cover + 14f
     val colW = (w - colX - pad).coerceAtLeast(60f)
+    val zone = if (idle) 48f else (colW / 3f).coerceIn(40f, 48f)   // touch zone of each control
+    val clusterW = if (idle) zone else zone * 3f
+    val ctlX = w - pad - clusterW
+    val ctlY = if (idle) (h - zone) / 2f else h - (pad - 4f).coerceAtLeast(0f) - zone
     val titleSize = (0.1f * h).coerceIn(14f, 17f)
     val artistSize = (0.075f * h).coerceIn(12f, 13f)
-    val zone = (colW / 3f).coerceIn(40f, 48f)          // touch zone of each control
-    val clusterW = zone * 3f
-    val ctlBottom = (pad - 4f).coerceAtLeast(0f)
+    val sourceSize = 9.5f
     val showTimes = h >= 140f
     val timeSize = 11f
     val timeH = 14f
-    val timeBottom = ctlBottom + zone + 2f
     val barH = colW / PlayerArt.DOTS                  // dot pitch == bar height, dots stay round
-    val barBottom = (if (showTimes) timeBottom + timeH else ctlBottom + zone) + 4f
-    val coverRadius = (radius - pad).coerceAtLeast(4f)
+    val groupH = barH + (if (showTimes) 4f + timeH else 0f)
+    val blockH = sourceSize * 1.25f + 3f + titleSize * 1.25f + 3f + artistSize * 1.25f
+    val blockBottom = pad + blockH
+    val groupY = blockBottom + max(2f, (ctlY - blockBottom - groupH) / 2f)
+    val coverRadius = if (idle) cover * 0.22f else (radius - pad).coerceAtLeast(4f)
+    // idle text column stops before the play button
+    val idleTextW = (w - colX - pad - zone - 10f).coerceAtLeast(40f)
 }
 
 object PlayerArt {
@@ -65,7 +76,7 @@ object PlayerArt {
         val f = frac.coerceIn(0f, 1f) * DOTS
         val head = f.toInt().coerceAtMost(DOTS - 1)
         val sub = if (f >= DOTS) 1f else f - head
-        val r = PITCH_PX * 0.29f
+        val r = PITCH_PX * DotText.DOT / 2f
         for (i in 0 until DOTS) {
             dotPaint.color = when {
                 i < head - 1 -> Nd.FG
@@ -85,8 +96,8 @@ object PlayerArt {
     }
 
     /**
-     * prev / play-pause / next in three zone-wide slots. Play = fg circle with a black glyph
-     * (chip circle with an fg glyph when idle); prev/next are bare fg dot glyphs. Idle: play only.
+     * Playing / paused: prev / play-pause / next in three zone-wide slots (play = fg circle with a black glyph,
+     * prev/next bare fg dot glyphs). Idle: one 48 dp round play button (chip circle, fg glyph).
      */
     fun controls(g: PlayerGeom, density: Float, playing: Boolean, idle: Boolean): Bitmap {
         val s = scaleFor(g.clusterW * g.zone, density, CONTROLS_BUDGET)
@@ -145,7 +156,7 @@ object PlayerArt {
             dotPaint.color = Nd.CHIP
             c.drawRoundRect(rect, radiusPx, radiusPx, dotPaint)
             dotPaint.color = Nd.FAINT
-            Glyphs.drawNote(c, size / 2f, size / 2f, size * 0.36f, dotPaint)
+            Glyphs.drawNote(c, size / 2f, size / 2f, size * 0.42f, dotPaint)
         }
         return bmp
     }

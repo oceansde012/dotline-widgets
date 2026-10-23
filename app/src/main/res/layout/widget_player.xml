@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ND_PlayerA (DESIGN_SPEC.md 2.4). The XML defaults describe a playing sample for a ~380x170 dp
-     widget: they are what the widget picker (previewLayout) and the first frame show. PlayerRenderer
-     recomputes every position from the real widget size. -->
+<!-- Player (DESIGN_SPEC.md 2.4). Everything is top|start with absolute margins that PlayerRenderer computes
+     from the real widget size on one grid (title block / progress group / controls). The XML values describe a
+     sample for the picker preview on Android < 15 only; the home screen never shows them. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -15,8 +15,8 @@
 
     <ImageView
         android:id="@+id/cover"
-        android:layout_width="138dp"
-        android:layout_height="138dp"
+        android:layout_width="133dp"
+        android:layout_height="133dp"
         android:layout_gravity="top|start"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
@@ -26,17 +26,31 @@
 
     <LinearLayout
         android:id="@+id/text_block"
-        android:layout_width="196dp"
+        android:layout_width="201dp"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_marginStart="168dp"
+        android:layout_marginStart="163dp"
         android:layout_marginTop="16dp"
         android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/source"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/label_regular"
+            android:includeFontPadding="false"
+            android:letterSpacing="0.08"
+            android:maxLines="1"
+            android:text="SPOTIFY"
+            android:textColor="@color/nd_dim"
+            android:textSize="9.5dp" />
 
         <TextView
             android:id="@+id/title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
             android:ellipsize="end"
             android:fontFamily="sans-serif-medium"
             android:includeFontPadding="false"
@@ -61,32 +75,32 @@
 
     <ImageView
         android:id="@+id/bar"
-        android:layout_width="196dp"
+        android:layout_width="201dp"
         android:layout_height="7dp"
-        android:layout_gravity="bottom|start"
-        android:layout_marginStart="168dp"
-        android:layout_marginBottom="80dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="163dp"
+        android:layout_marginTop="80dp"
         android:importantForAccessibility="no"
         android:scaleType="fitXY"
         android:src="@drawable/preview_bar" />
 
     <FrameLayout
         android:id="@+id/time_row"
-        android:layout_width="196dp"
+        android:layout_width="201dp"
         android:layout_height="14dp"
-        android:layout_gravity="bottom|start"
-        android:layout_marginStart="168dp"
-        android:layout_marginBottom="62dp">
+        android:layout_gravity="top|start"
+        android:layout_marginStart="163dp"
+        android:layout_marginTop="91dp">
 
         <Chronometer
             android:id="@+id/elapsed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start|center_vertical"
-            android:fontFamily="@font/space_mono_regular"
+            android:fontFamily="@font/label_regular"
             android:format="%s"
             android:includeFontPadding="false"
-            android:letterSpacing="0.08"
+            android:letterSpacing="0.04"
             android:maxLines="1"
             android:textColor="@color/nd_fg"
             android:textSize="11dp" />
@@ -96,9 +110,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|center_vertical"
-            android:fontFamily="@font/space_mono_regular"
+            android:fontFamily="@font/label_regular"
             android:includeFontPadding="false"
-            android:letterSpacing="0.08"
+            android:letterSpacing="0.04"
             android:maxLines="1"
             android:text="−3:59"
             android:textColor="@color/nd_dim"
@@ -109,9 +123,9 @@
         android:id="@+id/controls"
         android:layout_width="144dp"
         android:layout_height="48dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="12dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="220dp"
+        android:layout_marginTop="101dp"
         android:importantForAccessibility="no"
         android:scaleType="fitXY"
         android:src="@drawable/preview_controls" />
@@ -128,9 +142,9 @@
         android:id="@+id/zone_prev"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="112dp"
-        android:layout_marginBottom="12dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="220dp"
+        android:layout_marginTop="101dp"
         android:background="@drawable/nd_zone_round"
         android:contentDescription="@string/cd_prev" />
 
@@ -138,9 +152,9 @@
         android:id="@+id/zone_play"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="64dp"
-        android:layout_marginBottom="12dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="268dp"
+        android:layout_marginTop="101dp"
         android:background="@drawable/nd_zone_round"
         android:contentDescription="@string/cd_play_pause" />
 
@@ -148,9 +162,9 @@
         android:id="@+id/zone_next"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="12dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="316dp"
+        android:layout_marginTop="101dp"
         android:background="@drawable/nd_zone_round"
         android:contentDescription="@string/cd_next" />
 </FrameLayout>
