@@ -1,4 +1,4 @@
-﻿package io.github.oceansde012.dotline
+package io.github.oceansde012.dotline
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -100,21 +100,17 @@ class BudsWidgetProvider : AppWidgetProvider() {
         rv.setViewVisibility(R.id.read_r, View.GONE)
         rv.setViewVisibility(R.id.sub, View.GONE)
         rv.setViewVisibility(R.id.badge, View.GONE)
-        rv.setTextViewTextSize(R.id.name, DIP, small)
-        rv.setTextViewTextSize(R.id.sub, DIP, small)
 
+        // short, wrapped, shrunk to the narrow column: nothing is cut to "Allow…"
         fun twoLines(title: String, titleColor: Int, hint: String, hintColor: Int, titleSize: Float) {
-            val th = titleSize * 1.3f
-            val total = th + 3f + lineH
-            val y = (h - total) / 2f
-            rv.setTextViewTextSize(R.id.name, DIP, titleSize)
-            rv.setTextViewText(R.id.name, title)
-            rv.setTextColor(R.id.name, titleColor)
-            rv.place(R.id.name, x, y, colW, th)
-            rv.setTextViewText(R.id.sub, hint)
-            rv.setTextColor(R.id.sub, hintColor)
-            rv.place(R.id.sub, x, y + th + 3f, colW, lineH)
-            rv.setViewVisibility(R.id.sub, View.VISIBLE)
+            val avail = h - 12f
+            var t = rv.label(ctx, R.id.name, title.uppercase(), titleSize, titleColor, colW, medium = true, maxLines = 2, minSizeDp = 8f)
+            var hn = rv.label(ctx, R.id.sub, hint.uppercase(), small, hintColor, colW, maxLines = 2, minSizeDp = 8f)
+            if (t.hDp + 3f + hn.hDp > avail) hn = rv.label(ctx, R.id.sub, hint.uppercase(), small, hintColor, colW, minSizeDp = 8f)
+            if (t.hDp + 3f + hn.hDp > avail) t = rv.label(ctx, R.id.name, title.uppercase(), titleSize, titleColor, colW, medium = true, minSizeDp = 8f)
+            val y = (h - (t.hDp + 3f + hn.hDp)) / 2f
+            rv.margins(R.id.name, start = x, top = y)
+            rv.margins(R.id.sub, start = x, top = y + t.hDp + 3f)
         }
 
         when {
@@ -129,9 +125,8 @@ class BudsWidgetProvider : AppWidgetProvider() {
                     rv.setViewVisibility(R.id.badge, View.VISIBLE)
                     nameX += 15f
                 }
-                rv.setTextViewText(R.id.name, b.title)
-                rv.setTextColor(R.id.name, Nd.FG)
-                rv.place(R.id.name, nameX, pad, (colW - (nameX - x)).coerceAtLeast(20f), lineH)
+                val nm = rv.label(ctx, R.id.name, b.title, small, Nd.FG, (colW - (nameX - x)).coerceAtLeast(20f), medium = true, minSizeDp = 8f)
+                rv.margins(R.id.name, start = nameX, top = pad + (lineH - nm.hDp) / 2f)
                 val showCase = b.hasSides && b.case >= 0
                 val readTop = pad + lineH + 3f
                 val readBottom = if (showCase) h - pad - lineH - 3f else h - pad
@@ -152,9 +147,8 @@ class BudsWidgetProvider : AppWidgetProvider() {
                         rv.setViewVisibility(R.id.read_l, View.VISIBLE)
                         rv.setViewVisibility(R.id.read_r, View.VISIBLE)
                         if (showCase) {
-                            rv.setTextViewText(R.id.sub, ctx.getString(R.string.buds_case, b.case))
-                            rv.setTextColor(R.id.sub, Nd.DIM)
-                            rv.place(R.id.sub, x, h - pad - lineH, colW, lineH)
+                            val cs = rv.label(ctx, R.id.sub, ctx.getString(R.string.buds_case, b.case), small, Nd.DIM, colW, minSizeDp = 8f)
+                            rv.margins(R.id.sub, start = x, top = h - pad - cs.hDp)
                             rv.setViewVisibility(R.id.sub, View.VISIBLE)
                         }
                     }
@@ -167,9 +161,8 @@ class BudsWidgetProvider : AppWidgetProvider() {
                         rv.setViewVisibility(R.id.read_l, View.VISIBLE)
                     }
                     else -> {   // connected, battery unknown
-                        rv.setTextViewText(R.id.sub, ctx.getString(R.string.buds_connected))
-                        rv.setTextColor(R.id.sub, Nd.DIM)
-                        rv.place(R.id.sub, x, readTop + (availH - lineH) / 2f, colW, lineH)
+                        val cn = rv.label(ctx, R.id.sub, ctx.getString(R.string.buds_connected).uppercase(), small, Nd.DIM, colW, minSizeDp = 8f)
+                        rv.margins(R.id.sub, start = x, top = readTop + (availH - cn.hDp) / 2f)
                         rv.setViewVisibility(R.id.sub, View.VISIBLE)
                     }
                 }

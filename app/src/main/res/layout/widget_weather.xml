@@ -1,7 +1,7 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!-- Weather 2x2 (DESIGN_SPEC.md 2.3): dot icon top-left, dot-matrix temperature in the middle, condition +
      H/L at the bottom. WeatherWidgetProvider positions everything from the real size; the defaults are only
-     the picker preview on Android < 15. -->
+     the picker preview on Android < 15. Labels are bitmaps (LabelText), see there for why. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -24,22 +24,14 @@
         android:scaleType="fitXY"
         android:src="@drawable/preview_wx" />
 
-    <TextView
+    <ImageView
         android:id="@+id/city"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_marginStart="64dp"
         android:layout_marginTop="28dp"
-        android:layout_marginEnd="32dp"
-        android:ellipsize="end"
-        android:fontFamily="@font/label_regular"
-        android:gravity="end"
-        android:includeFontPadding="false"
-        android:letterSpacing="0.04"
-        android:maxLines="1"
-        android:textColor="@color/nd_dim"
-        android:textSize="11dp"
+        android:scaleType="fitXY"
         android:visibility="gone" />
 
     <ImageView
@@ -49,46 +41,26 @@
         android:layout_gravity="top|start"
         android:layout_marginStart="16dp"
         android:layout_marginTop="57dp"
-        android:importantForAccessibility="no"
         android:scaleType="fitXY"
         android:src="@drawable/pv_wx_temp" />
 
-    <LinearLayout
-        android:id="@+id/text_block"
-        android:layout_width="118dp"
+    <ImageView
+        android:id="@+id/label"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_marginStart="16dp"
         android:layout_marginTop="108dp"
-        android:orientation="vertical">
+        android:scaleType="fitXY" />
 
-        <TextView
-            android:id="@+id/label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:fontFamily="@font/label_medium"
-            android:includeFontPadding="false"
-            android:letterSpacing="0.04"
-            android:maxLines="1"
-            android:text="CLOUDY"
-            android:textColor="@color/nd_fg"
-            android:textSize="12dp" />
-
-        <TextView
-            android:id="@+id/sub"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:ellipsize="end"
-            android:fontFamily="@font/label_regular"
-            android:includeFontPadding="false"
-            android:letterSpacing="0.04"
-            android:maxLines="1"
-            android:text="H 12° · L 6°"
-            android:textColor="@color/nd_dim"
-            android:textSize="11dp" />
-    </LinearLayout>
+    <ImageView
+        android:id="@+id/sub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="124dp"
+        android:scaleType="fitXY" />
 
     <!-- accent: rain within 2 h; hidden in the preview -->
     <ImageView

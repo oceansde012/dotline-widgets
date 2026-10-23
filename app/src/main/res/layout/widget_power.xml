@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!-- Power 3x1 (DESIGN_SPEC.md 2.5): dot-matrix percent left, 10-dot bar + status label right.
      PowerWidgetProvider sizes and positions everything from the real size. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -19,24 +19,18 @@
         android:layout_gravity="top|start"
         android:layout_marginStart="14dp"
         android:layout_marginTop="15dp"
-        android:importantForAccessibility="no"
         android:scaleType="fitXY"
         android:src="@drawable/pv_power_num" />
 
-    <TextView
+    <ImageView
         android:id="@+id/unit"
         android:layout_width="wrap_content"
-        android:layout_height="14dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_marginStart="66dp"
         android:layout_marginTop="32dp"
-        android:fontFamily="@font/label_regular"
-        android:gravity="bottom"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:text="%"
-        android:textColor="@color/nd_dim"
-        android:textSize="12dp" />
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY" />
 
     <ImageView
         android:id="@+id/bar"
@@ -49,22 +43,14 @@
         android:scaleType="fitXY"
         android:src="@drawable/preview_power_bar" />
 
-    <TextView
+    <ImageView
         android:id="@+id/status"
-        android:layout_width="130dp"
-        android:layout_height="13dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_marginStart="90dp"
         android:layout_marginTop="33dp"
-        android:ellipsize="end"
-        android:fontFamily="@font/label_regular"
-        android:gravity="bottom"
-        android:includeFontPadding="false"
-        android:letterSpacing="0.04"
-        android:maxLines="1"
-        android:text="ON BATTERY"
-        android:textColor="@color/nd_dim"
-        android:textSize="10dp" />
+        android:scaleType="fitXY" />
 
     <ImageView
         android:id="@+id/zone"

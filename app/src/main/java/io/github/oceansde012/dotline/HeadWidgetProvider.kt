@@ -20,8 +20,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Head widget 5x1: the day number as dot-matrix, weekday + month in the label font, the next alarm
- * (bell + time) on the right. The date rolls over via [Ticker] (midnight alarm / minute tick) and the
+ * Head widget 5x1: the day number as dot-matrix, weekday + month labels, the next alarm (label + dot time)
+ * or "no alarm" on the right. The date rolls over via [Ticker] (midnight alarm / minute tick) and the
  * provider re-renders on alarm / time / zone / locale changes.
  */
 class HeadWidgetProvider : AppWidgetProvider() {
@@ -111,46 +111,61 @@ class HeadWidgetProvider : AppWidgetProvider() {
         val pitch = DotText.pitchFor(dayText, 0.4f * w, numH)
         val num = DotText.art(dayText, pitch, density)
         rv.putArt(R.id.day, num)
+        rv.setContentDescription(R.id.day, dayText)
         val top = (h - num.hDp) / 2f
         rv.margins(R.id.day, start = pad + 2f, top = top)
 
-        // weekday over month, beside the number, same height
+        // weekday over month, beside the number, same band
         val loc = Locale.getDefault()
         val weekday = SimpleDateFormat("EEE", loc).format(now).uppercase(loc)
         val month = SimpleDateFormat("LLL", loc).format(now).uppercase(loc)
         val colX = pad + 2f + num.wDp + 12f
-        rv.setTextViewText(R.id.weekday, weekday)
-        rv.setTextViewText(R.id.month, month)
+        val colW = (w * 0.26f).coerceAtLeast(60f)
         val size = (0.21f * h).coerceIn(11f, 14f)
-        rv.setTextViewTextSize(R.id.weekday, DIP, size)
-        rv.setTextViewTextSize(R.id.month, DIP, size - 1f)
-        rv.place(R.id.date_col, colX, top, (w * 0.3f).coerceAtLeast(60f), num.hDp)
+        val wd = rv.label(ctx, R.id.weekday, weekday, size, Nd.FG, colW, medium = true)
+        val mo = rv.label(ctx, R.id.month, month, size - 1f, Nd.DIM, colW)
+        val gap = 3f
+        val colTop = top + (num.hDp - (wd.hDp + gap + mo.hDp)) / 2f
+        rv.margins(R.id.weekday, start = colX, top = colTop)
+        rv.margins(R.id.month, start = colX, top = colTop + wd.hDp + gap)
 
-        // right: bell + next alarm, dim
+        // right: next alarm (label over dot-matrix time), or an honest "no alarm"
+        val rightEdge = w - pad - 2f
+        val maxRight = (rightEdge - (colX + colW + 12f)).coerceAtLeast(60f)
         val alarm = ctx.getSystemService(AlarmManager::class.java)?.nextAlarmClock
         if (alarm == null) {
-            rv.setViewVisibility(R.id.alarm_row, View.GONE)
+            rv.setViewVisibility(R.id.alarm_time, View.GONE)
+            val none = rv.label(ctx, R.id.alarm_label, ctx.getString(R.string.head_no_alarm).uppercase(loc), size - 1f, Nd.DIM, maxRight, minSizeDp = 9f)
+            rv.margins(R.id.alarm_label, start = rightEdge - none.wDp, top = top + (num.hDp - none.hDp) / 2f)
         } else {
-            rv.setViewVisibility(R.id.alarm_row, View.VISIBLE)
-            rv.setTextViewText(R.id.alarm, alarmLabel(ctx, alarm.triggerTime))
-            rv.setTextViewTextSize(R.id.alarm, DIP, size)
-            val bell = DotText.art(DotText.BELL.toString(), (size * 1.15f) / DotText.ROWS, density, Nd.DIM, matrix = false)
-            rv.putArt(R.id.bell, bell)
-            rv.margins(R.id.alarm_row, end = pad + 2f)
+            val (dayPart, timePart) = alarmParts(ctx, alarm.triggerTime)
+            val caption = (ctx.getString(R.string.head_alarm) + (dayPart?.let { " · $it" } ?: "")).uppercase(loc)
+            val cap = rv.label(ctx, R.id.alarm_label, caption, size - 1f, Nd.DIM, maxRight, minSizeDp = 9f)
+            val timeH = (num.hDp - cap.hDp - 4f).coerceAtLeast(12f)
+            val tp = DotText.pitchFor(timePart, maxRight, timeH)
+            val t = DotText.art(timePart, tp, density)
+            rv.putArt(R.id.alarm_time, t)
+            rv.setContentDescription(R.id.alarm_time, timePart)
+            rv.setViewVisibility(R.id.alarm_time, View.VISIBLE)
+            val blockH = cap.hDp + 4f + t.hDp
+            val y0 = top + (num.hDp - blockH) / 2f
+            rv.margins(R.id.alarm_label, start = rightEdge - cap.wDp, top = y0)
+            rv.margins(R.id.alarm_time, start = rightEdge - t.wDp, top = y0 + cap.hDp + 4f)
         }
         rv.setOnClickPendingIntent(R.id.zone_date, Taps.calendar(ctx))
         rv.setOnClickPendingIntent(R.id.zone_alarm, Taps.alarms(ctx))
         return rv
     }
 
-    /** `07:30`, or `MON 07:30` when the alarm is not today */
-    private fun alarmLabel(ctx: Context, at: Long): String {
+    /** (weekday or null when the alarm is today, `07:30`) */
+    private fun alarmParts(ctx: Context, at: Long): Pair<String?, String> {
         val pattern = if (DateFormat.is24HourFormat(ctx)) "HH:mm" else "h:mm a"
         val time = DateFormat.format(pattern, Date(at)).toString()
         val now = Calendar.getInstance()
         val then = Calendar.getInstance().apply { timeInMillis = at }
         val today = now.get(Calendar.YEAR) == then.get(Calendar.YEAR) &&
             now.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
-        return if (today) time else SimpleDateFormat("EEE", Locale.getDefault()).format(Date(at)).uppercase() + " " + time
+        val day = if (today) null else SimpleDateFormat("EEE", Locale.getDefault()).format(Date(at)).uppercase()
+        return day to time
     }
 }

@@ -23,13 +23,15 @@ Tile fills the whole cell area minus the launcher padding; no internal margins (
 Typography (3 roles only):
 - **Hero** — `DotText`: our own 5x7 dot glyph set drawn on a canvas (no font): clock, temperature, battery %, earbud %, day number. Lit dots `#F2F2F2`, unlit matrix `#2C2C2F` at 60%, dot = 0.62 of the pitch.
 - **Label** — `label_regular` / `label_medium` (IBM Plex Mono, OFL, Latin + Cyrillic), ALL CAPS, letter-spacing 0.08em, 11–13sp: dates, conditions, status lines, units.
+  Labels in widgets are drawn as bitmaps in our own process (`LabelText`, Typeface from app resources) because a launcher may replace the font of a hosted TextView; the app screen uses real TextViews. Tone of voice: informal "ти" (Дозволь, Вибери), short.
+
 - **Title** — system `sans-serif-medium`: track title only (needs full Unicode/Cyrillic); artist in `sans-serif` dim.
 
 ## 2. Widgets
 
 ### 2.1 Head — 5×1 (`HeadWidgetProvider`)
 - Left: `FRI 23 OCT` (Label, fg). Week day and month localised (uk/en from system locale).
-- Right: next alarm via `AlarmManager.getNextAlarmClock()` → `⏰ 07:30` (Label, dim). If none: the right side stays empty. No weather here (weather lives only in the Weather widget — kills the duplication).
+- Right: next alarm via `AlarmManager.getNextAlarmClock()`: caption `ALARM` (Label, dim) over the time in dots. If none: an honest dim `NO ALARM` label. No weather here (weather lives only in the Weather widget — kills the duplication).
 - Accent: none.
 - Tap left → Calendar app; tap right → Clock alarms.
 - Refresh: on `ACTION_DATE_CHANGED`, `TIME_SET`, `TIMEZONE_CHANGED`, `NEXT_ALARM_CLOCK_CHANGED` (runtime-registered in `MediaListenerService` process + `onUpdate`), plus a `TextClock` for the date so it rolls over without any update.
