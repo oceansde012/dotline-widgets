@@ -1,0 +1,105 @@
+# Dotline Widgets — design spec
+
+Target: a modern Android phone (reference: One UI home, 5-column grid, ~411dp wide, black wallpaper).
+Goal: six native widgets (Head, Time, Weather, Player, Power, Buds) that are calm, legible, consistent and never show stale state.
+
+## 1. Design tokens (single source: `Nd.kt` + `res/values`)
+
+| Token | Value | Use |
+|---|---|---|
+| `bg_tile` | `#141416` | every widget tile (one surface, no translucency) |
+| `stroke_tile` | `#222225`, 1dp | tile hairline, so tiles read on any wallpaper |
+| `fg` | `#F2F2F2` | primary text, lit dots, glyphs |
+| `dim` | `#8E8E93` | secondary text |
+| `faint` | `#4A4A4E` | labels on idle, unlit text |
+| `dot_off` | `#2C2C2F` | unlit dots of every dot bar/grid |
+| `accent` | `#D71921` | **max one small element per widget** (see §3) |
+| `chip` | `#232326` | inner chips: cover placeholder, play circle on idle |
+
+Radius: tile radius `R = min(26dp, 0.22 × tile height)` — identical formula for every widget so a 1-row and 2-row widget share the same corner rhythm. Inner elements use `R − padding` (cover art, chips).
+Padding: `P = 16dp` on all sides for every widget (scaled `min(16dp, 0.14 × H)` for small heights).
+Tile fills the whole cell area minus the launcher padding; no internal margins (removes the misaligned-left-edges bug).
+
+Typography (3 roles only):
+- **Hero** — `hero` (Doto, dot-matrix, OFL): clock digits, temperature, battery %, earbud %. One hero per widget.
+- **Label** — `space_mono_regular` (OFL, add to `res/font`), ALL CAPS, letter-spacing 0.08em, 11–13sp: dates, conditions, status lines, units.
+- **Title** — system `sans-serif-medium`: track title only (needs full Unicode/Cyrillic); artist in `sans-serif` dim.
+
+## 2. Widgets
+
+### 2.1 Head — 5×1 (`HeadWidgetProvider`)
+- Left: `FRI 23 OCT` (Label, fg). Week day and month localised (uk/en from system locale).
+- Right: next alarm via `AlarmManager.getNextAlarmClock()` → `⏰ 07:30` (Label, dim). If none: the right side stays empty. No weather here (weather lives only in the Weather widget — kills the duplication).
+- Accent: none.
+- Tap left → Calendar app; tap right → Clock alarms.
+- Refresh: on `ACTION_DATE_CHANGED`, `TIME_SET`, `TIMEZONE_CHANGED`, `NEXT_ALARM_CLOCK_CHANGED` (runtime-registered in `MediaListenerService` process + `onUpdate`), plus a `TextClock` for the date so it rolls over without any update.
+
+### 2.2 Time — 3×2 (`ClockWidgetProvider`, restyle)
+- Two `TextClock`s `HH` and `mm`, **both fg**, hero font, vertically centred, sized `min(0.46 H, (W − 2P) / 2.35)`.
+- Accent: a single red dot between/above (top-right corner at P). Static.
+- Below the digits: empty space.
+- Tap → Clock app (keep existing fallback chain).
+
+### 2.3 Weather — 2×2 (`WeatherWidgetProvider`, new)
+- Tile is a **square tile, not a red circle**.
+- Top-left: dot weather glyph (dot icons stored as coordinate arrays in `WeatherArt` → Canvas bitmap ≤ 96×96px, same pipeline as `PlayerArt`).
+- Centre-left: temperature hero `10°`.
+- Bottom: Label `CLOUDY` (fg) + second line `H 12° · L 6°` (dim). City name in dim if widget ≥ 3 cells wide.
+- Accent: red dot top-right **only** when precipitation probability ≥ 60% in the next 2 hours (shows `RAIN 14:00` instead of H/L).
+- Stale: if data older than 3 h, Label turns `faint` and shows `UPDATED 09:12`.
+- Tap → opens app's Weather sheet (MainActivity section) with hourly strip; long-press widget handled by launcher.
+- Data: Open-Meteo `forecast?current=temperature_2m,weather_code,is_day&hourly=precipitation_probability&daily=temperature_2m_max,temperature_2m_min&timezone=auto`. City chosen in app (geocoding API search) or "Use my location" (one-shot coarse, foreground only). Store lat/lon/name in prefs.
+- Refresh policy (Open-Meteo `current` itself updates every 15 min, so faster polling is pointless):
+  - `JobScheduler` periodic job, 15 min, `NETWORK_TYPE_ANY`.
+  - On `ACTION_USER_PRESENT` (runtime receiver in the listener service process): refresh if data older than 10 min.
+  - On widget add / app open: immediate refresh.
+  - Re-render (no network) every minute is NOT needed; only the stale label depends on time, computed at render.
+
+### 2.4 Player — 5×2 (`PlayerWidgetProvider`, restyle; keep `MediaTracker` engine)
+Keep the existing engine (session picking, 80ms debounce, screen-on tick, partial updates). Changes:
+- Layout: cover left (square, radius `R−P`, height `H − 2P`), right column: title (Title, 1 line, ellipsize) + artist (dim) top; **dot progress bar** middle; bottom row: time Label `0:56` left and `−0:59` right, controls right.
+- **Dot progress bar**: N = 28 dots in one row (width of the right column), lit = fg, unlit = `dot_off`, the current head dot = **accent** (this is the player's single red element). Rendered as one tiny bitmap (≤ 600×16 px ARGB ≈ 38 KB) per tick, pushed with `partiallyUpdateAppWidget` together with the time text. Ticks every second while playing + screen on (existing tick logic). Bar also covers sub-dot progress by fading the head dot's left neighbour.
+- Elapsed time additionally uses a `Chronometer` (`setChronometer(base = elapsedRealtime − pos, running = playing)`) so the seconds keep counting even if a partial update is throttled by the launcher; the remaining time is updated with the dot bar.
+- Controls: prev / next = fg dot glyphs, no circle; play/pause = fg circle with **black** glyph (no red). 48dp min touch zones.
+- Idle (no session or STOPPED/NONE, or PAUSED > 30 min): cover = chip with dot note, title `Not playing` (dim), artist = last app label, bar hidden, only play circle → resumes last app. Never shows a stale track as playing.
+- Paused: same face, play glyph, Chronometer stopped, bar frozen, time Label dim.
+
+### 2.5 Power — 3×1 (`PowerWidgetProvider`, new)
+- Left: hero `77` + Label `%`.
+- Right: 10-segment dot bar (one dot = 10%), lit fg.
+- Status Label under the bar:
+  - charging: `CHARGING · FULL IN 1H 05M` from `BatteryManager.computeChargeTimeRemaining()`; if −1 → `CHARGING`.
+  - full: `CHARGED`.
+  - discharging: `ON BATTERY` (+ temperature `31°C` if > 40 °C, in accent).
+- Accent: charging = the next dot to fill blinks? (no — static) → the last lit dot is red while charging; when ≤ 15% the hero is red. Never both.
+- Updates: `ACTION_BATTERY_CHANGED` runtime receiver in the listener-service process (it is long-lived), throttled to one render per 1% change or status change; plus `ACTION_POWER_CONNECTED/DISCONNECTED`.
+
+### 2.6 Buds — 2×1 (`BudsWidgetProvider`, new)
+- Connected: dot earbuds glyph left; right: `L 80 · R 75` (Label) and `CASE 40` (dim) if available, else single hero `80%`.
+- Disconnected: glyph in `faint`, Label `NOT CONNECTED` (dim). Never "OFF".
+- Accent: red dot when any bud ≤ 15%.
+- Tap → `Settings.ACTION_BLUETOOTH_SETTINGS`.
+- Data, in order: reflection `BluetoothDevice.getMetadata(METADATA_UNTETHERED_{LEFT,RIGHT,CASE}_BATTERY)` → `getBatteryLevel()` → connected-only. Listen to `android.bluetooth.device.action.BATTERY_LEVEL_CHANGED`, `ACL_CONNECTED/DISCONNECTED`, A2DP/HEADSET profile connection state. Needs `BLUETOOTH_CONNECT` runtime permission (asked from app onboarding).
+
+## 3. Accent rule (enforced in review)
+Per widget, at most one accent element, and it must *mean* something: Time = the dot; Player = progress head; Power = charging/low; Weather = rain soon; Buds = low battery; Head = none.
+
+## 4. App screen (MainActivity redesign)
+Single scroll, black `#000`, same tokens.
+1. Header: `DOTLINE` in the hero font, version in Label dim.
+2. **Setup checklist** cards (each a tile with status dot fg/accent + one action button):
+   - Notification access (player) → opens listener settings; hint about "Allow restricted settings" on Samsung with a button to App info.
+   - Weather location → city search field + results list, or "Use my location".
+   - Bluetooth (buds) → runtime permission.
+   Cards collapse to a single line `✓ READY` once granted.
+3. **Widgets gallery**: each widget rendered live (inflate the same RemoteViews into the activity via `RemoteViews.apply()`), with `ADD TO HOME` button (`requestPinAppWidget`).
+4. Settings: 24h/12h, °C/°F, show remaining vs total time in player.
+5. Footer: `Weather data by Open-Meteo.com` (licence requirement).
+
+## 5. Engineering rules
+- Plain framework + RemoteViews, no new dependencies (keep the app tiny). Add `INTERNET`, `BLUETOOTH_CONNECT`, `ACCESS_COARSE_LOCATION`.
+- One long-lived host for runtime receivers: `MediaListenerService` (already bound by the system once access is granted). Fallback when access is not granted: receivers registered from providers' `onUpdate` + JobScheduler.
+- Every bitmap ≤ 300 KB, whole RemoteViews parcel ≤ 500 KB.
+- Each provider `previewLayout` so the widget picker shows the real design.
+- All sizes derived from real widget size (`WidgetSize.of`) on add/resize.
+- Fonts: only OFL fonts are bundled: Doto (hero) and Space Mono (labels); licence texts live in `assets/licenses/`.

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Weather 2x2 (DESIGN_SPEC.md 2.3). The XML defaults are the picker preview (partly cloudy, 10 degrees);
+     WeatherWidgetProvider recomputes sizes and margins from the real widget size. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/tile"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/nd_tile_r26" />
+
+    <ImageView
+        android:id="@+id/icon"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/preview_wx" />
+
+    <TextView
+        android:id="@+id/city"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="64dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="32dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/space_mono_regular"
+        android:gravity="end"
+        android:includeFontPadding="false"
+        android:letterSpacing="0.08"
+        android:maxLines="1"
+        android:textColor="@color/nd_dim"
+        android:textSize="11dp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/temp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="58dp"
+        android:fontFamily="@font/hero"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="10°"
+        android:textColor="@color/nd_fg"
+        android:textSize="40dp" />
+
+    <LinearLayout
+        android:id="@+id/text_block"
+        android:layout_width="118dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/space_mono_regular"
+            android:includeFontPadding="false"
+            android:letterSpacing="0.08"
+            android:maxLines="1"
+            android:text="CLOUDY"
+            android:textColor="@color/nd_fg"
+            android:textSize="12dp" />
+
+        <TextView
+            android:id="@+id/sub"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:fontFamily="@font/space_mono_regular"
+            android:includeFontPadding="false"
+            android:letterSpacing="0.08"
+            android:maxLines="1"
+            android:text="H 12° · L 6°"
+            android:textColor="@color/nd_dim"
+            android:textSize="11dp" />
+    </LinearLayout>
+
+    <!-- accent: rain within 2 h; hidden in the preview -->
+    <ImageView
+        android:id="@+id/dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/nd_dot"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/zone"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/nd_zone_r26"
+        android:contentDescription="@string/cd_open_weather" />
+</FrameLayout>

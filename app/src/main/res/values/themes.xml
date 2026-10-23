@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Dotline" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/nd_screen</item>
+        <item name="android:colorBackground">@color/nd_screen</item>
+        <item name="android:colorPrimary">@color/nd_bg</item>
+        <item name="android:colorAccent">@color/nd_accent</item>
+        <item name="android:textColorPrimary">@color/nd_fg</item>
+        <item name="android:textColorSecondary">@color/nd_dim</item>
+        <item name="android:statusBarColor">@color/nd_screen</item>
+        <item name="android:navigationBarColor">@color/nd_screen</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

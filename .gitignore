@@ -1,0 +1,29 @@
+# build output
+build/
+/app/build/
+.gradle/
+.kotlin/
+*.apk
+*.aab
+*.class
+
+# local config and secrets
+local.properties
+*.jks
+*.keystore
+*.b64
+*.b64.txt
+keystore.properties
+secrets/
+secrets.*
+.env
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+captures/
+.externalNativeBuild/
+.cxx/

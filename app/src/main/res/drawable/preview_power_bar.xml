@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- generated from the dot coordinates of the runtime icon (widget picker preview) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="110dp"
+    android:height="11dp"
+    android:viewportWidth="110"
+    android:viewportHeight="11">
+    <path android:fillColor="#F2F2F2" android:pathData="M2.20,5.50 a3.30,3.30 0 1,0 6.60,0 a3.30,3.30 0 1,0 -6.60,0z M13.20,5.50 a3.30,3.30 0 1,0 6.60,0 a3.30,3.30 0 1,0 -6.60,0z M24.20,5.50 a3.30,3.30 0 1,0 6.60,0 a3.30,3.30 0 1,0 -6.60,0z M35.20,5.50 a3.30,3.30 0 1,0 6.60,0 a3.30,3.30 0 1,0 -6.60,0z M46.20,5.50 a3.30,3.30 0 1,0 6.60,0 a3.30,3.30 0 1,0 -6.60,0z M57.20,5.50 a3.30,3.30 0 1,0 6.60,0 a3.30,3.30 0 1,0 -6.60,0z M68.20,5.50 a3.30,3.30 0 1,0 6.60,0 a3.30,3.30 0 1,0 -6.60,0z M79.20,5.50 a3.30,3.30 0 1,0 6.60,0 a3.30,3.30 0 1,0 -6.60,0z" />
+    <path android:fillColor="#2C2C2F" android:pathData="M90.20,5.50 a3.30,3.30 0 1,0 6.60,0 a3.30,3.30 0 1,0 -6.60,0z M101.20,5.50 a3.30,3.30 0 1,0 6.60,0 a3.30,3.30 0 1,0 -6.60,0z" />
+</vector>

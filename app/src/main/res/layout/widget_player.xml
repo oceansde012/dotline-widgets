@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ND_PlayerA (DESIGN_SPEC.md 2.4). The XML defaults describe a playing sample for a ~380x170 dp
+     widget: they are what the widget picker (previewLayout) and the first frame show. PlayerRenderer
+     recomputes every position from the real widget size. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/tile"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/nd_tile_r26" />
+
+    <ImageView
+        android:id="@+id/cover"
+        android:layout_width="138dp"
+        android:layout_height="138dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/preview_cover" />
+
+    <LinearLayout
+        android:id="@+id/text_block"
+        android:layout_width="196dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="168dp"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="Midnight City"
+            android:textColor="@color/nd_fg"
+            android:textSize="17dp" />
+
+        <TextView
+            android:id="@+id/artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="M83"
+            android:textColor="@color/nd_dim"
+            android:textSize="13dp" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/bar"
+        android:layout_width="196dp"
+        android:layout_height="7dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="168dp"
+        android:layout_marginBottom="80dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/preview_bar" />
+
+    <FrameLayout
+        android:id="@+id/time_row"
+        android:layout_width="196dp"
+        android:layout_height="14dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="168dp"
+        android:layout_marginBottom="62dp">
+
+        <Chronometer
+            android:id="@+id/elapsed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical"
+            android:fontFamily="@font/space_mono_regular"
+            android:format="%s"
+            android:includeFontPadding="false"
+            android:letterSpacing="0.08"
+            android:maxLines="1"
+            android:textColor="@color/nd_fg"
+            android:textSize="11dp" />
+
+        <TextView
+            android:id="@+id/remaining"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:fontFamily="@font/space_mono_regular"
+            android:includeFontPadding="false"
+            android:letterSpacing="0.08"
+            android:maxLines="1"
+            android:text="−3:59"
+            android:textColor="@color/nd_dim"
+            android:textSize="11dp" />
+    </FrameLayout>
+
+    <ImageView
+        android:id="@+id/controls"
+        android:layout_width="144dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="12dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/preview_controls" />
+
+    <!-- tap zones: transparent, on top of the rendered picture -->
+    <ImageView
+        android:id="@+id/zone_open"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/nd_zone_r26"
+        android:contentDescription="@string/cd_open_player" />
+
+    <ImageView
+        android:id="@+id/zone_prev"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="112dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/nd_zone_round"
+        android:contentDescription="@string/cd_prev" />
+
+    <ImageView
+        android:id="@+id/zone_play"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="64dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/nd_zone_round"
+        android:contentDescription="@string/cd_play_pause" />
+
+    <ImageView
+        android:id="@+id/zone_next"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/nd_zone_round"
+        android:contentDescription="@string/cd_next" />
+</FrameLayout>

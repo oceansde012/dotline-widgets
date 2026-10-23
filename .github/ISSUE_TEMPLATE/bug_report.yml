@@ -1,0 +1,55 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did you see instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: widget
+    attributes:
+      label: Widget
+      options: [Head, Time, Weather, Player, Power, Buds, App screen, Updater, Other]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown at the top of the app, e.g. 1.0.123
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device model
+      placeholder: e.g. Galaxy S25 Ultra
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Android / One UI version
+      placeholder: e.g. Android 15, One UI 7
+    validations:
+      required: true
+  - type: input
+    id: launcher
+    attributes:
+      label: Launcher
+      placeholder: e.g. One UI Home, Nova, Lawnchair
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove anything personal first.

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dotline Widgets</string>
+    <string name="listener_label">Dotline media</string>
+    <string name="player_widget_label">Dotline Player</string>
+    <string name="clock_widget_label">Dotline Time</string>
+    <string name="head_widget_label">Dotline Head</string>
+    <string name="head_widget_desc">Date and next alarm in one line</string>
+    <string name="alarm_fmt">ALARM %s</string>
+    <string name="cd_open_calendar">Open calendar</string>
+    <string name="cd_open_alarms">Open alarms</string>
+    <string name="player_widget_desc">Cover, track, progress and controls of the current player</string>
+    <string name="clock_widget_desc">Dot-matrix clock with a single red dot</string>
+    <string name="not_playing">Not playing</string>
+    <string name="tap_play">Tap play to start</string>
+    <string name="unknown_title">Unknown</string>
+    <string name="cd_prev">Previous</string>
+    <string name="cd_play_pause">Play or pause</string>
+    <string name="cd_next">Next</string>
+    <string name="cd_open_player">Open player</string>
+    <string name="cd_open_clock">Open clock</string>
+    <string name="pin_unsupported">This launcher cannot add widgets from apps. Long-press the home screen, then Widgets, then Dotline Widgets.</string>
+
+    <!-- weather / power / buds widgets -->
+    <string name="weather_widget_label">Dotline Weather</string>
+    <string name="weather_widget_desc">Dot-matrix weather: temperature, condition, high and low</string>
+    <string name="power_widget_label">Dotline Power</string>
+    <string name="power_widget_desc">Battery level as ten dots, with charging status</string>
+    <string name="buds_widget_label">Dotline Buds</string>
+    <string name="buds_widget_desc">Earbuds battery: left, right and case</string>
+    <string name="cd_open_weather">Open weather</string>
+    <string name="cd_open_battery">Open battery usage</string>
+    <string name="cd_open_bluetooth">Open Bluetooth settings</string>
+    <string name="wx_set_city">SET CITY</string>
+    <string name="wx_no_data">NO DATA</string>
+    <string name="wx_updated">UPDATED %s</string>
+    <string name="wx_rain_now">RAIN NOW</string>
+    <string name="wx_rain_at">RAIN %s</string>
+    <string name="wx_hi_lo">H %1$s · L %2$s</string>
+    <string name="wx_clear">Clear</string>
+    <string name="wx_mostly_clear">Mostly clear</string>
+    <string name="wx_partly">Partly cloudy</string>
+    <string name="wx_cloudy">Cloudy</string>
+    <string name="wx_fog">Fog</string>
+    <string name="wx_drizzle">Drizzle</string>
+    <string name="wx_rain">Rain</string>
+    <string name="wx_freezing_rain">Freezing rain</string>
+    <string name="wx_snow">Snow</string>
+    <string name="wx_showers">Showers</string>
+    <string name="wx_snow_showers">Snow showers</string>
+    <string name="wx_storm">Thunderstorm</string>
+    <string name="power_charged">CHARGED</string>
+    <string name="power_charging">CHARGING</string>
+    <string name="power_charging_time">CHARGING · %s</string>
+    <string name="power_charging_full_in">CHARGING · FULL IN %s</string>
+    <string name="power_on_battery">ON BATTERY</string>
+    <string name="power_h_m">%1$dH %2$02dM</string>
+    <string name="power_m">%dM</string>
+    <string name="buds_allow">ALLOW BLUETOOTH</string>
+    <string name="buds_not_connected">NOT CONNECTED</string>
+    <string name="buds_connected">CONNECTED</string>
+    <string name="buds_case">CASE %d</string>
+
+    <!-- app screen -->
+    <string name="header_title">DOTLINE</string>
+    <string name="header_version">v%s</string>
+    <string name="sec_setup">SETUP</string>
+    <string name="sec_widgets">WIDGETS</string>
+    <string name="sec_settings">SETTINGS</string>
+    <string name="status_ready">✓ READY</string>
+
+    <string name="notif_title">NOTIFICATION ACCESS</string>
+    <string name="notif_body">The player widget needs it to see what is playing. Notifications are never read or stored.</string>
+    <string name="btn_open_settings">OPEN SETTINGS</string>
+    <string name="btn_restricted">Greyed out? Allow restricted settings</string>
+    <string name="restricted_steps">1  Open App info with the link above\n2  Tap ⋮ (top right)\n3  Choose Allow restricted settings, then come back</string>
+
+    <string name="wx_title">WEATHER CITY</string>
+    <string name="wx_title_city">WEATHER · %s</string>
+    <string name="wx_body">Search for your city, or let the phone find it. Used only for the forecast.</string>
+    <string name="wx_search_hint">Search city</string>
+    <string name="wx_searching">Searching…</string>
+    <string name="wx_not_found">No city found, or no network.</string>
+    <string name="btn_use_location">USE MY LOCATION</string>
+    <string name="wx_locating">Finding your location…</string>
+    <string name="wx_location_failed">Could not get your location. Turn on location services and try again.</string>
+    <string name="btn_open_app_settings">OPEN APP SETTINGS</string>
+
+    <string name="bt_title">BLUETOOTH</string>
+    <string name="bt_body">Lets the buds widget read the battery of connected earbuds.</string>
+    <string name="btn_allow">ALLOW</string>
+
+    <string name="gallery_player">PLAYER · 5×2</string>
+    <string name="gallery_clock">TIME · 3×2</string>
+    <string name="gallery_head">HEAD · 5×1</string>
+    <string name="gallery_weather">WEATHER · 2×2</string>
+    <string name="gallery_power">POWER · 3×1</string>
+    <string name="gallery_buds">BUDS · 2×1</string>
+    <string name="btn_add_home">ADD TO HOME</string>
+    <string name="demo_title">Dot Matrix</string>
+    <string name="demo_artist">Preview track</string>
+
+    <string name="set_temp">TEMPERATURE</string>
+    <string name="set_player_time">PLAYER TIME</string>
+    <string name="opt_celsius">°C</string>
+    <string name="opt_fahrenheit">°F</string>
+    <string name="opt_remaining">REMAINING</string>
+    <string name="opt_total">TOTAL</string>
+    <string name="set_clock_note">Clock format (12h / 24h) follows the system.</string>
+
+    <string name="footer_weather">Weather data by Open-Meteo.com</string>
+    <string name="footer_fonts">Space Mono and Doto: SIL Open Font License 1.1.</string>
+
+    <string name="sec_updates">UPDATES</string>
+    <string name="upd_setup_title">AUTO-UPDATES</string>
+    <string name="upd_setup_body">To install updates the app needs the \"Install unknown apps\" permission. Android still asks you to confirm every update.</string>
+    <string name="btn_allow_installs">ALLOW INSTALLS</string>
+    <string name="upd_version">VERSION %s</string>
+    <string name="upd_last_check">LAST CHECK %s</string>
+    <string name="upd_never">NEVER CHECKED</string>
+    <string name="upd_up_to_date">UP TO DATE</string>
+    <string name="upd_checking">CHECKING…</string>
+    <string name="upd_downloading">DOWNLOADING… %d%%</string>
+    <string name="upd_ready">READY TO INSTALL %s</string>
+    <string name="upd_installing">INSTALLING…</string>
+    <string name="upd_error">ERROR: %s</string>
+    <string name="upd_cancelled">INSTALL CANCELLED</string>
+    <string name="btn_install">INSTALL</string>
+    <string name="btn_check_now">CHECK NOW</string>
+    <string name="upd_channel">App updates</string>
+    <string name="upd_notif_title">Update %s ready — tap to install</string>
+    <string name="upd_notif_text">Dotline Widgets</string>
+</resources>

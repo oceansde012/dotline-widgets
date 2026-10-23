@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="head_widget_desc">Дата і найближчий будильник в одному рядку</string>
+    <string name="alarm_fmt">БУДИЛЬНИК %s</string>
+    <string name="player_widget_desc">Обкладинка, трек, прогрес і керування поточним плеєром</string>
+    <string name="clock_widget_desc">Точковий годинник з однією червоною крапкою</string>
+    <string name="not_playing">Нічого не грає</string>
+    <string name="pin_unsupported">Цей лаунчер не вміє додавати віджети з застосунків. Затисніть екран, оберіть Віджети, потім Dotline Widgets.</string>
+    <string name="weather_widget_desc">Точкова погода: температура, стан, максимум і мінімум</string>
+    <string name="power_widget_desc">Рівень заряду десятьма крапками та стан зарядки</string>
+    <string name="buds_widget_desc">Заряд навушників: лівий, правий і кейс</string>
+
+    <string name="wx_set_city">ОБЕРІТЬ МІСТО</string>
+    <string name="wx_no_data">НЕМАЄ ДАНИХ</string>
+    <string name="wx_updated">ОНОВЛЕНО %s</string>
+    <string name="wx_rain_now">ДОЩ ЗАРАЗ</string>
+    <string name="wx_rain_at">ДОЩ %s</string>
+    <string name="wx_hi_lo">МАКС %1$s · МІН %2$s</string>
+    <string name="wx_clear">Ясно</string>
+    <string name="wx_mostly_clear">Майже ясно</string>
+    <string name="wx_partly">Перем. хмарно</string>
+    <string name="wx_cloudy">Хмарно</string>
+    <string name="wx_fog">Туман</string>
+    <string name="wx_drizzle">Мряка</string>
+    <string name="wx_rain">Дощ</string>
+    <string name="wx_freezing_rain">Крижаний дощ</string>
+    <string name="wx_snow">Сніг</string>
+    <string name="wx_showers">Злива</string>
+    <string name="wx_snow_showers">Снігопад</string>
+    <string name="wx_storm">Гроза</string>
+    <string name="power_charged">ЗАРЯДЖЕНО</string>
+    <string name="power_charging">ЗАРЯДКА</string>
+    <string name="power_charging_time">ЗАРЯДКА · %s</string>
+    <string name="power_charging_full_in">ЗАРЯДКА · ПОВНА ЧЕРЕЗ %s</string>
+    <string name="power_on_battery">ВІД БАТАРЕЇ</string>
+    <string name="power_h_m">%1$d ГОД %2$02d ХВ</string>
+    <string name="power_m">%d ХВ</string>
+    <string name="buds_allow">ДОЗВОЛЬТЕ BLUETOOTH</string>
+    <string name="buds_not_connected">НЕ ПІДКЛЮЧЕНО</string>
+    <string name="buds_connected">ПІДКЛЮЧЕНО</string>
+    <string name="buds_case">КЕЙС %d</string>
+
+    <!-- app screen -->
+    <string name="sec_setup">НАЛАШТУВАННЯ</string>
+    <string name="sec_widgets">ВІДЖЕТИ</string>
+    <string name="sec_settings">ПАРАМЕТРИ</string>
+    <string name="status_ready">✓ ГОТОВО</string>
+
+    <string name="notif_title">ДОСТУП ДО СПОВІЩЕНЬ</string>
+    <string name="notif_body">Потрібен віджету плеєра, щоб бачити, що зараз грає. Сповіщення ніколи не читаються й не зберігаються.</string>
+    <string name="btn_open_settings">ВІДКРИТИ</string>
+    <string name="btn_restricted">Перемикач неактивний? Дозвольте обмежені налаштування</string>
+    <string name="restricted_steps">1  Відкрийте «Про застосунок» за посиланням вище\n2  Торкніться ⋮ (угорі праворуч)\n3  Оберіть «Дозволити обмежені налаштування» і поверніться</string>
+
+    <string name="wx_title">МІСТО ДЛЯ ПОГОДИ</string>
+    <string name="wx_title_city">ПОГОДА · %s</string>
+    <string name="wx_body">Знайдіть своє місто або дозвольте телефону визначити його. Використовується лише для прогнозу.</string>
+    <string name="wx_search_hint">Пошук міста</string>
+    <string name="wx_searching">Шукаю…</string>
+    <string name="wx_not_found">Міста не знайдено або немає мережі.</string>
+    <string name="btn_use_location">МОЯ ГЕОЛОКАЦІЯ</string>
+    <string name="wx_locating">Визначаю місцезнаходження…</string>
+    <string name="wx_location_failed">Не вдалося визначити місцезнаходження. Увімкніть геолокацію й спробуйте ще раз.</string>
+    <string name="btn_open_app_settings">ВІДКРИТИ НАЛАШТУВАННЯ</string>
+
+    <string name="bt_title">BLUETOOTH</string>
+    <string name="bt_body">Дозволяє віджету навушників читати заряд підключених навушників.</string>
+    <string name="btn_allow">ДОЗВОЛИТИ</string>
+
+    <string name="gallery_player">ПЛЕЄР · 5×2</string>
+    <string name="gallery_clock">ЧАС · 3×2</string>
+    <string name="gallery_head">ДАТА · 5×1</string>
+    <string name="gallery_weather">ПОГОДА · 2×2</string>
+    <string name="gallery_power">ЗАРЯД · 3×1</string>
+    <string name="gallery_buds">НАВУШНИКИ · 2×1</string>
+    <string name="btn_add_home">НА ЕКРАН</string>
+    <string name="demo_title">Dot Matrix</string>
+    <string name="demo_artist">Приклад треку</string>
+
+    <string name="set_temp">ТЕМПЕРАТУРА</string>
+    <string name="set_player_time">ЧАС У ПЛЕЄРІ</string>
+    <string name="opt_remaining">ЗАЛИШИЛОСЬ</string>
+    <string name="opt_total">ВСЬОГО</string>
+    <string name="set_clock_note">Формат годинника (12 / 24 год) береться із системи.</string>
+    <string name="footer_fonts">Space Mono і Doto: ліцензія SIL OFL 1.1.</string>
+
+    <string name="sec_updates">ОНОВЛЕННЯ</string>
+    <string name="upd_setup_title">АВТООНОВЛЕННЯ</string>
+    <string name="upd_setup_body">Щоб встановлювати оновлення, потрібен дозвіл «Встановлення невідомих застосунків». Android усе одно просить підтвердити кожне оновлення.</string>
+    <string name="btn_allow_installs">ДОЗВОЛИТИ ВСТАНОВЛЕННЯ</string>
+    <string name="upd_version">ВЕРСІЯ %s</string>
+    <string name="upd_last_check">ОСТАННЯ ПЕРЕВІРКА %s</string>
+    <string name="upd_never">ЩЕ НЕ ПЕРЕВІРЯЛОСЬ</string>
+    <string name="upd_up_to_date">ОСТАННЯ ВЕРСІЯ</string>
+    <string name="upd_checking">ПЕРЕВІРКА…</string>
+    <string name="upd_downloading">ЗАВАНТАЖЕННЯ… %d%%</string>
+    <string name="upd_ready">ГОТОВО ДО ВСТАНОВЛЕННЯ %s</string>
+    <string name="upd_installing">ВСТАНОВЛЕННЯ…</string>
+    <string name="upd_error">ПОМИЛКА: %s</string>
+    <string name="upd_cancelled">ВСТАНОВЛЕННЯ СКАСОВАНО</string>
+    <string name="btn_install">ВСТАНОВИТИ</string>
+    <string name="btn_check_now">ПЕРЕВІРИТИ</string>
+    <string name="upd_channel">Оновлення застосунку</string>
+    <string name="upd_notif_title">Оновлення %s готове — торкніться, щоб встановити</string>
+    <string name="upd_notif_text">Dotline Widgets</string>
+</resources>

@@ -1,0 +1,118 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# a second push must not kill a run that is already publishing a release
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # tag push v<code>: the code comes from the tag; branch push: run_number + 100 (the release creates tag v<code>)
+      - name: Version code
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            code="${GITHUB_REF_NAME#v}"
+            case "$code" in ''|*[!0-9]*) echo "::error::Tag must look like v<number>, got $GITHUB_REF_NAME"; exit 1;; esac
+          else
+            code=$((GITHUB_RUN_NUMBER + 100))
+          fi
+          echo "VERSION_CODE=$code" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Release key from repo secrets (Settings > Secrets and variables > Actions), never from the repo.
+      - name: Decode signing key
+        env:
+          SIGNING_KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_B64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          missing=""
+          for v in SIGNING_KEYSTORE_B64 SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then missing="$missing $v"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=Missing repo secrets::Not set:$missing. Settings > Secrets and variables > Actions, see README.md. Refusing to build an APK with a throwaway key."
+            exit 1
+          fi
+          ks="$RUNNER_TEMP/release.jks"
+          echo "$SIGNING_KEYSTORE_B64" | base64 -d > "$ks"
+          echo "SIGNING_KEYSTORE_FILE=$ks" >> "$GITHUB_ENV"
+          echo "Release key decoded to the runner temp dir"
+
+      - name: Build release APK
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Remove key file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: Verify APK signature and version
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*.apk)
+          bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n1)
+          "$bt/apksigner" verify --verbose --print-certs "$apk" | tee "$RUNNER_TEMP/signer.txt"
+          if grep -q "CN=Android Debug" "$RUNNER_TEMP/signer.txt"; then
+            echo "::error::APK is signed with a debug key"; exit 1
+          fi
+          "$bt/aapt2" dump badging "$apk" | grep -E "^package:" | grep -q "name='io.github.oceansde012.dotline' versionCode='${VERSION_CODE}' versionName='1.0.${VERSION_CODE}'"
+          mkdir -p "$RUNNER_TEMP/out"
+          cp "$apk" "$RUNNER_TEMP/out/dotline-widgets.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotline-widgets-apk
+          path: ${{ runner.temp }}/out/dotline-widgets.apk
+          if-no-files-found: error
+
+      # Fixed template body plus the matching section of CHANGELOG.md. No commit log.
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$RUNNER_TEMP/notes.md"
+          {
+            printf 'Dotline Widgets 1.0.%s, automatic build.\n\n' "$VERSION_CODE"
+            printf 'Install: download `dotline-widgets.apk` below. Already installed? The app offers updates itself (you confirm every install).\n'
+            printf 'Inspired by Nothing OS design; not affiliated with Nothing Technology Limited.\n'
+          } > "$notes"
+          # optional curated section "## 1.0.<code>" (else "## latest") of CHANGELOG.md
+          for h in "1.0.${VERSION_CODE}" latest; do
+            sec=$(awk -v h="## $h" '$0==h{f=1;next} /^## /{f=0} f' CHANGELOG.md 2>/dev/null || true)
+            if [ -n "$(echo "$sec" | tr -d '[:space:]')" ]; then
+              printf '\n%s\n' "$sec" >> "$notes"
+              break
+            fi
+          done
+          gh release create "v${VERSION_CODE}" "$RUNNER_TEMP/out/dotline-widgets.apk" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Dotline Widgets 1.0.${VERSION_CODE}" \
+            --notes-file "$notes" \
+            --latest

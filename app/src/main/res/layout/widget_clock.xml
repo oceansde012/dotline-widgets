@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Time widget: HH and mm in the Doto hero font, both fg, one static red dot top-right. TextClock ticks on its own
+     (in the launcher process). Sizes are defaults for a ~190 dp high widget; ClockWidgetProvider
+     rescales them to the real widget size (DESIGN_SPEC.md 2.2). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/tile"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/nd_tile_r26" />
+
+    <LinearLayout
+        android:id="@+id/time_row"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextClock
+            android:id="@+id/hours"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/hero"
+            android:format12Hour="hh"
+            android:format24Hour="HH"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:textColor="@color/nd_fg"
+            android:textSize="84dp" />
+
+        <TextClock
+            android:id="@+id/minutes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="11dp"
+            android:fontFamily="@font/hero"
+            android:format12Hour="mm"
+            android:format24Hour="mm"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:textColor="@color/nd_fg"
+            android:textSize="84dp" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/nd_dot" />
+
+    <ImageView
+        android:id="@+id/zone"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/nd_zone_r26"
+        android:contentDescription="@string/cd_open_clock" />
+</FrameLayout>

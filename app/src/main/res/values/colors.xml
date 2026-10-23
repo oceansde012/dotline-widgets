@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DESIGN_SPEC.md section 1 -->
+    <color name="nd_bg">#FF141416</color>
+    <color name="nd_stroke">#FF222225</color>
+    <color name="nd_fg">#FFF2F2F2</color>
+    <color name="nd_dim">#FF8E8E93</color>
+    <color name="nd_faint">#FF4A4A4E</color>
+    <color name="nd_off">#FF2C2C2F</color>
+    <color name="nd_accent">#FFD71921</color>
+    <color name="nd_chip">#FF232326</color>
+    <color name="nd_screen">#FF000000</color>
+</resources>

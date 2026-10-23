@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- widget picker preview of the 28-dot progress bar -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="196dp" android:height="10dp" android:viewportWidth="196" android:viewportHeight="10">
+    <path android:fillColor="@color/nd_fg" android:pathData="M1.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M8.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M15.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M22.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M29.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M36.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M43.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M50.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M57.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M64.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M71.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_fg" android:pathData="M78.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_accent" android:pathData="M85.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M92.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M99.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M106.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M113.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M120.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M127.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M134.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M141.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M148.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M155.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M162.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M169.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M176.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M183.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path android:fillColor="@color/nd_off" android:pathData="M190.5,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+</vector>
