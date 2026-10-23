@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Dotline Widgets</string>
     <string name="listener_label">Dotline media</string>
@@ -156,5 +156,10 @@
     <string name="no_picker">No file picker found on this phone.</string>
     <string name="nx_not_installed">Nothing X is not installed (or not visible to this app).</string>
     <string name="nx_none_found">No product-size pictures found in Nothing X (%d images seen).</string>
+    <string name="crash_title">Crash</string>
+    <string name="crash_text">The app crashed last time. You can copy the details and send them to the developer.</string>
+    <string name="crash_copy">Copy</string>
+    <string name="crash_close">Close</string>
+    <string name="crash_copied">Copied</string>
 </resources>
 

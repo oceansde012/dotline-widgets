@@ -6,6 +6,7 @@ import android.app.job.JobScheduler
 import android.app.job.JobService
 import android.content.ComponentName
 import android.content.Context
+import android.util.Log
 
 /** every 15 min: looks for a new release and downloads it, so INSTALL is instant when the user gets to it */
 class UpdateJob : JobService() {
@@ -33,13 +34,17 @@ class UpdateJob : JobService() {
             val a = ctx.applicationContext
             val js = a.getSystemService(JobScheduler::class.java) ?: return
             if (js.getPendingJob(JOB_ID) != null) return
-            js.schedule(
-                JobInfo.Builder(JOB_ID, ComponentName(a, UpdateJob::class.java))
-                    .setPeriodic(PERIOD_MS)
-                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                    .setPersisted(true)
-                    .build()
-            )
+            try {
+                js.schedule(
+                    JobInfo.Builder(JOB_ID, ComponentName(a, UpdateJob::class.java))
+                        .setPeriodic(PERIOD_MS)
+                        .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                        .setPersisted(true)
+                        .build()
+                )
+            } catch (e: RuntimeException) {
+                Log.w("UpdateJob", "schedule failed", e)
+            }
         }
     }
 }

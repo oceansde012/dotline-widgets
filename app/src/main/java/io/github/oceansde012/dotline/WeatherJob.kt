@@ -7,6 +7,7 @@ import android.app.job.JobService
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
+import android.util.Log
 
 /**
  * The 15 minute heartbeat (DESIGN_SPEC.md 2.3 / section 5 fallback): fetches the forecast and, since the
@@ -46,7 +47,11 @@ class WeatherJob : JobService() {
                 .setPeriodic(PERIOD_MS)
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .build()
-            js.schedule(info)
+            try {
+                js.schedule(info)
+            } catch (e: RuntimeException) {
+                Log.w("WeatherJob", "schedule failed", e)
+            }
         }
 
         /** call from onDisabled of each provider: stops the job once none of the three widgets is left */

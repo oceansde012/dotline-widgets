@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="head_widget_desc">Дата і найближчий будильник в одному рядку</string>
     <string name="alarm_fmt">БУДИЛЬНИК %s</string>
@@ -129,5 +129,10 @@
     <string name="no_picker">На телефоні немає вибору файлів.</string>
     <string name="nx_not_installed">Nothing X не встановлено (або не видно цьому застосунку).</string>
     <string name="nx_none_found">У Nothing X не знайдено великих зображень (бачу %d).</string>
+    <string name="crash_title">Збій</string>
+    <string name="crash_text">Минулого разу додаток аварійно завершився. Можна скопіювати подробиці та надіслати їх розробнику.</string>
+    <string name="crash_copy">Копіювати</string>
+    <string name="crash_close">Закрити</string>
+    <string name="crash_copied">Скопійовано</string>
 </resources>
 

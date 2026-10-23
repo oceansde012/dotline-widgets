@@ -1,4 +1,4 @@
-﻿package io.github.oceansde012.dotline
+package io.github.oceansde012.dotline
 
 import android.Manifest
 import android.app.Activity
@@ -132,8 +132,17 @@ class MainActivity : Activity() {
 
     // --- lifecycle ---------------------------------------------------------------------------
 
+    /** true while the crash report screen replaces the normal UI (nothing else is initialised then) */
+    private var crashShown = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val crash = DotlineApp.readCrash(this)
+        if (crash != null) {
+            crashShown = true
+            showCrashScreen(crash)
+            return
+        }
         setContentView(R.layout.activity_main)
         ui = Ui(this)
         scroll = requireViewById(R.id.scroll)
@@ -161,9 +170,45 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun showCrashScreen(report: String) {
+        val u = Ui(this)
+        val root = u.vertical().apply {
+            setBackgroundColor(Nd.BG)
+            setPadding(u.dp(20), u.dp(20), u.dp(20), u.dp(20))
+        }
+        root.addView(u.label(getString(R.string.crash_title), Nd.ACCENT, 18f), u.lp())
+        root.addView(u.body(getString(R.string.crash_text), Nd.DIM, 14f), u.lp(top = 8, bottom = 12))
+        val sv = ScrollView(this).apply { setBackgroundColor(Nd.CHIP) }
+        sv.addView(u.text(report, 10.5f, Nd.FG, u.mono).apply {
+            setTextIsSelectable(true)
+            setPadding(u.dp(12), u.dp(12), u.dp(12), u.dp(12))
+        }, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+        root.addView(sv, u.lp(h = 0, weight = 1f))
+        root.addView(u.button(getString(R.string.crash_copy), primary = true).apply {
+            setOnClickListener {
+                val cm = getSystemService(android.content.ClipboardManager::class.java)
+                cm?.setPrimaryClip(android.content.ClipData.newPlainText("Dotline crash", report))
+                Toast.makeText(this@MainActivity, R.string.crash_copied, Toast.LENGTH_SHORT).show()
+            }
+        }, u.lp(top = 12))
+        root.addView(u.button(getString(R.string.crash_close), primary = false).apply {
+            setOnClickListener {
+                DotlineApp.clearCrash(this@MainActivity)
+                recreate()
+            }
+        }, u.lp(top = 8))
+        root.setOnApplyWindowInsetsListener { v, ins ->
+            val bars = ins.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+            v.setPadding(bars.left + u.dp(20), bars.top + u.dp(20), bars.right + u.dp(20), bars.bottom + u.dp(20))
+            ins
+        }
+        setContentView(root)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (crashShown) return
         pendingSection = intent.getStringExtra(WeatherWidgetProvider.EXTRA_SECTION)
         intent.removeExtra(WeatherWidgetProvider.EXTRA_SECTION)
         takeUpdateExtras(intent)
@@ -171,6 +216,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        if (crashShown) return
         val granted = MediaTracker.hasAccess(this)
         MediaTracker.ensureStarted(this)   // also starts the power / weather / buds receivers
         if (granted) MediaTracker.render(this, forceFull = true)
@@ -201,6 +247,7 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
+        if (crashShown) return
         Updater.foreground = false
         Updater.onChange = null
         main.removeCallbacks(previewTick)
@@ -458,6 +505,7 @@ class MainActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
+        if (crashShown) return
         if (requestCode != REQ_PICK_IMAGE || resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         val app = applicationContext
@@ -752,6 +800,7 @@ class MainActivity : Activity() {
     @Deprecated("framework permission callback, no AndroidX here")
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (crashShown) return
         val ok = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
         when (requestCode) {
             REQ_BT -> {

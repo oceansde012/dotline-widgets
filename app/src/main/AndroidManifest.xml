@@ -1,8 +1,10 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Open-Meteo forecast + geocoding -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- required for JobScheduler jobs with a network constraint (weather, update check) on API 34+ -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- earbud battery / connected audio device (runtime permission, asked in the app) -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
@@ -58,6 +60,7 @@
         <package android:name="com.samsung.android.app.watchmanager" />
     </queries>
     <application
+        android:name=".DotlineApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
