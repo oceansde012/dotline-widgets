@@ -1,4 +1,4 @@
-package io.github.oceansde012.dotline
+﻿package io.github.oceansde012.dotline
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -17,9 +17,11 @@ import java.util.concurrent.Executors
 object ArtLoader {
     private const val TAG = "NdArt"
     private const val MAX_SIDE = 640
+    private const val RETRY_MS = 60_000L
+    private const val DISK_LIMIT = 40
     private val io = Executors.newFixedThreadPool(2)
     private val cache = LruCache<String, Bitmap>(10)
-    private val failed = HashSet<String>()
+    private val failed = HashMap<String, Long>()   // uri -> failure time, retried after RETRY_MS
     private val pending = HashSet<String>()
     /** last failure text per scheme, for the diagnostics card */
     @Volatile var lastError: String = ""
@@ -30,7 +32,10 @@ object ArtLoader {
     /** starts a load unless cached / running / already failed; [onLoaded] runs on the loader thread */
     @Synchronized
     fun request(ctx: Context, uri: String, onLoaded: () -> Unit) {
-        if (cache.get(uri) != null || uri in pending || uri in failed) return
+        if (cache.get(uri) != null || uri in pending) return
+        val failedAt = failed[uri]
+        if (failedAt != null && android.os.SystemClock.elapsedRealtime() - failedAt < RETRY_MS) return
+        failed.remove(uri)
         pending.add(uri)
         val a = ctx.applicationContext
         io.execute {
@@ -43,7 +48,7 @@ object ArtLoader {
             }
             synchronized(this) {
                 pending.remove(uri)
-                if (bmp != null) cache.put(uri, bmp) else failed.add(uri)
+                if (bmp != null) cache.put(uri, bmp) else failed[uri] = android.os.SystemClock.elapsedRealtime()
             }
             if (bmp != null) onLoaded()
         }
@@ -76,3 +81,4 @@ object ArtLoader {
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, o2)
     }
 }
+
