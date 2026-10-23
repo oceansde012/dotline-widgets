@@ -4,6 +4,11 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- Widget labels are now drawn by the app in IBM Plex Mono, so they look right on Samsung One UI too, where the launcher used to replace the font.
+- Head shows the next alarm on the right, or "no alarm" when there is none.
+- Weather shows no number at all until a city is chosen. Buds and Weather texts no longer get cut off; Ukrainian texts use one informal tone.
+- Player: a paused session stays visible with its cover; Spotify cover art loads more reliably, and Spotify ads are shown without a fake progress bar.
+- Buds: only real headphones count (a connected watch or car is no longer shown as earbuds); battery older than 10 minutes is not shown as current.
 - Fixed: the app crashed on open on Android 14 and newer. If something ever goes wrong again, the next start shows what happened with a Copy button.
 - True dot-matrix numerals: the clock, temperature, battery level and the date are drawn by the app as round dots, so they look the same on every phone. The clock still ticks every minute.
 - New label font with Cyrillic support (IBM Plex Mono), so Ukrainian labels no longer look mismatched.
