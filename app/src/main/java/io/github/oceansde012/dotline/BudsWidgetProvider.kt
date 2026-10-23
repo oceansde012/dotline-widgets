@@ -124,10 +124,15 @@ class BudsWidgetProvider : AppWidgetProvider() {
                     rv.setViewVisibility(R.id.badge, View.VISIBLE)
                     nameX += 15f
                 }
-                val nm = rv.label(ctx, R.id.name, b.title, small, Nd.FG, (colW - (nameX - x)).coerceAtLeast(20f), medium = true, minSizeDp = 8f)
-                rv.margins(R.id.name, start = nameX, top = pad + (lineH - nm.hDp) / 2f)
-                val showCase = b.hasSides && b.case >= 0
-                val readTop = pad + lineH + 3f
+                // the name may take two lines (wrapped at a space, shrunk down to 8dp, then "...")
+                val nm = rv.label(ctx, R.id.name, b.title, small, Nd.FG, (colW - (nameX - x)).coerceAtLeast(20f), medium = true, maxLines = 2, minSizeDp = 8f)
+                val nameH = maxOf(nm.hDp, lineH)
+                rv.margins(R.id.name, start = nameX, top = pad + (nameH - nm.hDp) / 2f)
+                val twoLines = nm.hDp > lineH * 1.5f
+                val readTop = pad + nameH + 3f
+                // two name lines leave little height: the case line gives way to bigger dot digits
+                val caseFits = !twoLines || (h - pad - lineH - 3f - readTop) >= 14f
+                val showCase = b.hasSides && b.case >= 0 && caseFits
                 val readBottom = if (showCase) h - pad - lineH - 3f else h - pad
                 val availH = (readBottom - readTop).coerceAtLeast(8f)
                 when {

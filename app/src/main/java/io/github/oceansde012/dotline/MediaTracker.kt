@@ -78,6 +78,7 @@ object MediaTracker {
     private const val TAG = "NdMedia"
     private const val PREFS = "nd"
     private const val KEY_LAST_PKG = "last_pkg"
+    private const val KEY_LAST_PLAY = "last_play"
     const val SPOTIFY = "com.spotify.music"
 
     private val main = Handler(Looper.getMainLooper())
@@ -164,11 +165,15 @@ object MediaTracker {
         unwatchAll()
         for (c in list.orEmpty()) {
             val cb = object : MediaController.Callback() {
-                override fun onPlaybackStateChanged(state: PlaybackState?) = reevaluate()
+                override fun onPlaybackStateChanged(state: PlaybackState?) {
+                    noteState(c.packageName, state?.state)
+                    reevaluate()
+                }
                 override fun onMetadataChanged(metadata: MediaMetadata?) = reevaluate()
                 override fun onSessionDestroyed() = reevaluate()
             }
             try {
+                if (isPlayingState(c.playbackState?.state) && c.packageName !in playingNow) noteState(c.packageName, c.playbackState?.state)
                 c.registerCallback(cb, main)
                 watched.add(c to cb)
             } catch (e: Exception) {
@@ -267,10 +272,42 @@ object MediaTracker {
      * recent PAUSED one (getActiveSessions is ordered by priority / recency). STOPPED, NONE and ERROR
      * are idle: such sessions are dead or stale.
      */
-    fun pick(list: List<MediaController>): MediaController? =
-        list.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-            ?: list.firstOrNull { isPlayingState(it.playbackState?.state) }
-            ?: list.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PAUSED }
+    fun pick(list: List<MediaController>): MediaController? {
+        list.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }?.let { return it }
+        list.firstOrNull { isPlayingState(it.playbackState?.state) }?.let { return it }
+        val paused = list.filter { it.playbackState?.state == PlaybackState.STATE_PAUSED }
+        if (paused.isEmpty()) return null
+        // among paused ones: the one our tracker saw playing last (never lastPositionUpdateTime: unreliable across apps)
+        val persisted = persistedPlay()
+        return paused.maxByOrNull { c ->
+            playedAt[c.packageName] ?: persisted?.takeIf { it.first == c.packageName }?.second ?: 0L
+        }?.takeIf { c ->
+            (playedAt[c.packageName] ?: persisted?.takeIf { it.first == c.packageName }?.second ?: 0L) > 0L
+        } ?: paused.first()
+    }
+
+    // --- "who played last" bookkeeping ---------------------------------------------------------
+
+    private val playedAt = HashMap<String, Long>()
+    private val playingNow = HashSet<String>()
+
+    private fun persistedPlay(): Pair<String, Long>? {
+        val v = app?.getSharedPreferences(PREFS, Context.MODE_PRIVATE)?.getString(KEY_LAST_PLAY, null) ?: return null
+        val i = v.lastIndexOf('|')
+        if (i <= 0) return null
+        return v.substring(0, i) to (v.substring(i + 1).toLongOrNull() ?: return null)
+    }
+
+    /** records transitions into and out of a playing state (time = last moment it was heard) */
+    private fun noteState(pkg: String, state: Int?) {
+        val playing = isPlayingState(state)
+        val was = pkg in playingNow
+        if (playing == was) return
+        if (playing) playingNow.add(pkg) else playingNow.remove(pkg)
+        val now = System.currentTimeMillis()
+        playedAt[pkg] = now
+        app?.getSharedPreferences(PREFS, Context.MODE_PRIVATE)?.edit()?.putString(KEY_LAST_PLAY, "$pkg|$now")?.apply()
+    }
 
     private fun nonBlank(s: String?): String? = s?.takeIf { it.isNotBlank() }
 
