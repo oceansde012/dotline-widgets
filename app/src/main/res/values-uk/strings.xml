@@ -128,6 +128,9 @@
     <string name="btn_choose_picture">ОБРАТИ ЗОБРАЖЕННЯ</string>
     <string name="btn_reset">СКИНУТИ</string>
     <string name="btn_from_nothing_x">З NOTHING X</string>
+    <string name="btn_nx_color">КОЛІР: %1$s</string>
+    <string name="nx_color_white">БІЛІ</string>
+    <string name="nx_color_black">ЧОРНІ</string>
     <string name="no_picker">На телефоні немає вибору файлів.</string>
     <string name="nx_not_installed">Nothing X не встановлено (або не видно цьому застосунку).</string>
     <string name="nx_none_found">У Nothing X не знайдено великих зображень (бачу %d).</string>

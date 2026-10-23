@@ -155,6 +155,9 @@
     <string name="btn_choose_picture">CHOOSE PICTURE</string>
     <string name="btn_reset">RESET</string>
     <string name="btn_from_nothing_x">FROM NOTHING X</string>
+    <string name="btn_nx_color">COLOUR: %1$s</string>
+    <string name="nx_color_white">WHITE</string>
+    <string name="nx_color_black">BLACK</string>
     <string name="no_picker">No file picker found on this phone.</string>
     <string name="nx_not_installed">Nothing X is not installed (or not visible to this app).</string>
     <string name="nx_none_found">No product-size pictures found in Nothing X (%d images seen).</string>

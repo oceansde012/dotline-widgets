@@ -76,6 +76,7 @@ class MainActivity : Activity() {
     private lateinit var notifStatus: TextView
     private lateinit var budsName: TextView
     private lateinit var budsResetBtn: TextView
+    private lateinit var budsColorBtn: TextView
     private lateinit var nxGrid: LinearLayout
 
     // diagnostics card
@@ -485,6 +486,13 @@ class MainActivity : Activity() {
         b.addView(ui.button(getString(R.string.btn_from_nothing_x), primary = false).apply {
             setOnClickListener { loadNothingXGrid() }
         }, ui.lp(top = 8))
+        budsColorBtn = ui.button("", primary = false).apply {
+            setOnClickListener {
+                BudsRepo.setNxColor(this@MainActivity, if (BudsRepo.nxColor(this@MainActivity) == "black") "white" else "black")
+                refreshAfterBuds()
+            }
+        }
+        b.addView(budsColorBtn, ui.lp(top = 8))
         b.addView(ui.body(getString(R.string.buds_picture_note), Nd.DIM, 12f), ui.lp(top = 6, start = 2))
         nxGrid = ui.vertical()
         b.addView(nxGrid, ui.lp(top = 8))
@@ -583,6 +591,8 @@ class MainActivity : Activity() {
         budsName.text = if (b.address.isEmpty()) getString(R.string.buds_picture_none)
         else getString(R.string.buds_picture_for, b.title.ifBlank { b.name }, BudsRepo.picture(this, b).source)
         budsResetBtn.alpha = if (BudsRepo.hasUserPicture(this, b)) 1f else 0.4f
+        budsColorBtn.text = getString(R.string.btn_nx_color,
+            getString(if (BudsRepo.nxColor(this) == "black") R.string.nx_color_black else R.string.nx_color_white))
         btButton.text = getString(if (btBlocked && !bt) R.string.btn_open_app_settings else R.string.btn_allow)
         locButton.text = getString(if (locBlocked) R.string.btn_open_app_settings else R.string.btn_use_location)
     }

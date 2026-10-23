@@ -479,7 +479,7 @@ object BudsRepo {
     private fun resolve(a: Context, b: Buds, h: String) {
         val notes = StringBuilder()
         val auto = File(dir(a), "${h}_$AUTO_FILE")
-        File(dir(a), "${h}_auto.png").delete()   // v1 cache: Nothing X pictures could be saved upscaled
+        for (old in OLD_AUTO) File(dir(a), "${h}_$old").delete()   // older caches: upscaled or overlapping pairs
         // 0 Nothing X resources
         val model = b.model.ifBlank { b.name }
         var src: String? = null
@@ -545,7 +545,17 @@ object BudsRepo {
     )
     private const val MAX_PAIR = 400
     /** resolved picture cache; bump the suffix when the resolver output changes so old files are not reused */
-    private const val AUTO_FILE = "auto2.png"
+    private const val AUTO_FILE = "auto3.png"
+    private val OLD_AUTO = listOf("auto.png", "auto2.png")
+
+    /** colour of the Nothing X pair; Android does not expose the real colour, so the user picks it ("white" or "black") */
+    fun nxColor(a: Context): String = srcPref(a).getString("nx_color", "white") ?: "white"
+
+    fun setNxColor(a: Context, color: String) {
+        srcPref(a).edit().putString("nx_color", color).apply()
+        forgetTried()
+        refreshAsync(a, force = true)
+    }
 
     private fun nothingXPrefix(model: String): String? = NX_PREFIX[model.trim().lowercase(Locale.ROOT)]
 
@@ -565,11 +575,12 @@ object BudsRepo {
         return bmp
     }
 
-    /** left + right earbud of [prefix] read from the installed Nothing X app (black, else white, else no colour); null if absent */
+    /** left + right earbud of [prefix] read from the installed Nothing X app (chosen colour, else the other, else no colour); null if absent */
     private fun nothingXPair(a: Context, prefix: String): Pair<Bitmap, String>? {
+        val colors = if (nxColor(a) == "black") listOf("_black", "_white", "") else listOf("_white", "_black", "")
         for (p in nothingXPackages(a)) {
             val res = try { a.packageManager.getResourcesForApplication(p) } catch (e: Exception) { continue }
-            for (color in listOf("_black", "_white", "")) {
+            for (color in colors) {
                 val base = prefix + color
                 val l = try { nxBitmap(res, base + "_left", p) } catch (e: Exception) { null }
                 val r = try { nxBitmap(res, base + "_right", p) } catch (e: Exception) { null }
@@ -581,10 +592,10 @@ object BudsRepo {
         return null
     }
 
-    /** left and right side by side on a transparent background, the right one slightly over the left; longest side <= [MAX_PAIR] */
+    /** left and right side by side on a transparent background with a small gap; longest side <= [MAX_PAIR] */
     private fun overlap(l: Bitmap, r: Bitmap): Bitmap? {
         val h = maxOf(l.height, r.height)
-        val shift = (l.width * 0.85f).toInt()
+        val shift = (l.width * 1.12f).toInt()
         val w = shift + r.width
         val k = minOf(1f, MAX_PAIR.toFloat() / maxOf(w, h))
         val out = Bitmap.createBitmap((w * k).toInt().coerceAtLeast(1), (h * k).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
