@@ -6,6 +6,15 @@
 
 > Inspired by Nothing OS design; not affiliated with Nothing Technology Limited.
 
+## Скриншоти
+
+<p>
+  <img src="docs/media/widgets.png" alt="Віджети Head, Time, Buds, Power і Weather на Galaxy S25 Ultra" width="560">
+  <img src="docs/media/player.gif" alt="Віджет Player: крапкова смуга прогресу рухається щосекунди" width="320">
+</p>
+
+Справжні скриншоти з Galaxy S25 Ultra (One UI). GIF плеєра обрізано без обкладинки альбому.
+
 ## Віджети
 
 | Віджет | Розмір | Що робить |

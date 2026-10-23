@@ -8,7 +8,12 @@
 
 ## Screenshots
 
-<!-- TODO: add screenshots (home screen with all six widgets, app screen, widget picker) -->
+<p>
+  <img src="docs/media/widgets.png" alt="Head, Time, Buds, Power and Weather widgets on a Galaxy S25 Ultra" width="560">
+  <img src="docs/media/player.gif" alt="Player widget: the dot progress bar advances every second" width="320">
+</p>
+
+Real screenshots from a Galaxy S25 Ultra (One UI, Ukrainian locale). The player GIF is cropped to leave out the album cover.
 
 ## Widgets
 

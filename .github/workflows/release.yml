@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    # docs-only pushes must not publish an identical app release
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'tools/**'
     tags:
       - 'v*'
   workflow_dispatch:
