@@ -306,11 +306,17 @@ object BudsRepo {
         for (d in audio) {
             val name = displayName(d)
             val address = try { d.address } catch (e: Exception) { continue }
-            val l = metaBattery(d, META_LEFT_BATTERY)
-            val r = metaBattery(d, META_RIGHT_BATTERY)
-            val c = metaBattery(d, META_CASE_BATTERY)
+            var l = metaBattery(d, META_LEFT_BATTERY)
+            var r = metaBattery(d, META_RIGHT_BATTERY)
+            var c = metaBattery(d, META_CASE_BATTERY)
             var single = -1
             var source = if (l >= 0 || r >= 0) "METADATA L/R" else "none"
+            // Nothing / CMF earbuds answer a battery request on their own service (what Nothing X uses)
+            if (l < 0 && r < 0 && NothingBattery.supports(d)) {
+                NothingBattery.read(d)?.takeIf { it.left >= 0 || it.right >= 0 }?.let {
+                    l = it.left; r = it.right; c = it.case; source = "NOTHING L/R"
+                }
+            }
             if (l < 0 && r < 0) {
                 single = metaBattery(d, META_MAIN_BATTERY)
                 if (single >= 0) source = "METADATA main"
@@ -732,7 +738,8 @@ object BudsRepo {
             out.add("${if (conn) "*" else " "} $nm | $hp | meta $keys | getBatteryLevel=$gb | broadcast=$bc")
         }
         val b = last
-        out.add("source won: ${b?.source ?: "none"}; connected=${b?.connected}")
+        out.add("source won: ${b?.source ?: "none"}; connected=${b?.connected}; L=${b?.left} R=${b?.right} case=${b?.case}")
+        out.add("Nothing L/R request: ${NothingBattery.lastNote}")
         out.add("model: ${b?.model.orEmpty().ifBlank { "-" }}; companion: ${b?.companion ?: "-"}")
         if (b != null && b.address.isNotEmpty()) out.add("picture: ${picture(a, b).source}")
         out.add("resolver: $resolveNotes")

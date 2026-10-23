@@ -8,6 +8,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.os.Build
 import android.os.Bundle
 import android.text.format.DateFormat
@@ -18,6 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.math.ceil
 
 /**
  * Head widget 5x1: the day number as dot-matrix, weekday + month labels, the next alarm (label + dot time)
@@ -133,10 +137,12 @@ class HeadWidgetProvider : AppWidgetProvider() {
         val rightEdge = w - pad - 2f
         val maxRight = (rightEdge - (colX + colW + 12f)).coerceAtLeast(60f)
         val alarm = ctx.getSystemService(AlarmManager::class.java)?.nextAlarmClock
+        val rightW: Float
         if (alarm == null) {
             rv.setViewVisibility(R.id.alarm_time, View.GONE)
             val none = rv.label(ctx, R.id.alarm_label, ctx.getString(R.string.head_no_alarm).uppercase(loc), size - 1f, Nd.DIM, maxRight, minSizeDp = 9f)
             rv.margins(R.id.alarm_label, start = rightEdge - none.wDp, top = top + (num.hDp - none.hDp) / 2f)
+            rightW = none.wDp
         } else {
             val (dayPart, timePart) = alarmParts(ctx, alarm.triggerTime)
             val caption = (ctx.getString(R.string.head_alarm) + (dayPart?.let { " · $it" } ?: "")).uppercase(loc)
@@ -151,10 +157,52 @@ class HeadWidgetProvider : AppWidgetProvider() {
             val y0 = top + (num.hDp - blockH) / 2f
             rv.margins(R.id.alarm_label, start = rightEdge - cap.wDp, top = y0)
             rv.margins(R.id.alarm_time, start = rightEdge - t.wDp, top = y0 + cap.hDp + 4f)
+            rightW = maxOf(cap.wDp, t.wDp)
+        }
+
+        // middle: this month as day dots (past days dim, today red, the rest off)
+        val gapL = colX + maxOf(wd.wDp, mo.wDp) + 16f
+        val gapR = rightEdge - rightW - 16f
+        val cal = monthArt(gapR - gapL, num.hDp, density)
+        if (cal == null) {
+            rv.setViewVisibility(R.id.month_dots, View.GONE)
+        } else {
+            rv.putArt(R.id.month_dots, cal)
+            rv.setViewVisibility(R.id.month_dots, View.VISIBLE)
+            rv.margins(R.id.month_dots, start = gapL + (gapR - gapL - cal.wDp) / 2f, top = top + (num.hDp - cal.hDp) / 2f)
         }
         rv.setOnClickPendingIntent(R.id.zone_date, Taps.calendar(ctx))
         rv.setOnClickPendingIntent(R.id.zone_alarm, Taps.alarms(ctx))
         return rv
+    }
+
+    /** the current month as two rows of day dots (1..16 over 17..31); null when the box is too small to read */
+    private fun monthArt(boxW: Float, boxH: Float, density: Float): DotText.Art? {
+        val cal = Calendar.getInstance()
+        val today = cal.get(Calendar.DAY_OF_MONTH)
+        val days = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val rows = 2
+        val cols = (days + 1) / 2
+        val pitch = minOf(boxW / cols, boxH / 3f, 9f)
+        if (pitch < 4f) return null
+        val wDp = cols * pitch
+        val hDp = rows * pitch
+        val s = DotText.scaleFor(wDp, hDp, density)
+        val px = pitch * s
+        val bmp = Bitmap.createBitmap(ceil(wDp * s).toInt(), ceil(hDp * s).toInt(), Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        val r = px * DotText.DOT / 2f
+        for (d in 1..days) {
+            val i = d - 1
+            p.color = when {
+                d == today -> Nd.ACCENT
+                d < today -> Nd.DIM
+                else -> DotText.offColor()
+            }
+            c.drawCircle((i % cols + 0.5f) * px, (i / cols + 0.5f) * px, r, p)
+        }
+        return DotText.Art(bmp, wDp, hDp)
     }
 
     /** (weekday or null when the alarm is today, `07:30`) */

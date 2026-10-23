@@ -4,6 +4,8 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- Buds: separate left / right / case battery for Nothing earbuds, asked directly from the earbuds over the same Bluetooth service the Nothing X app uses (read-only battery request; the case is reported while the earbuds are in it).
+- Head: the middle shows this month as day dots (past days grey, today red).
 - Buds: Nothing X earbuds are drawn white by default with a small gap between them; Android does not tell apps the colour, so the app has a COLOUR button to switch to black.
 - Player: when several players are paused, the widget shows the one you played last. Buds: long earbud names wrap to two lines instead of overlapping the battery.
 - Buds: the earbud picture now comes from the Nothing X app on your phone for Nothing Ear, Ear (1), Ear (2), Ear (stick) and Ear (a); the widget shows the device's real name instead of the name you gave it; car kits are no longer treated as earbuds. Separate left / right / case battery is only available to system apps, so the widget shows the overall level.
