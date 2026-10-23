@@ -78,7 +78,6 @@ object MediaTracker {
     private const val TAG = "NdMedia"
     private const val PREFS = "nd"
     private const val KEY_LAST_PKG = "last_pkg"
-    private const val PAUSE_IDLE_MS = 30 * 60 * 1000L
     const val SPOTIFY = "com.spotify.music"
 
     private val main = Handler(Looper.getMainLooper())
@@ -251,33 +250,8 @@ object MediaTracker {
         if (t != null && t.pkg != lastPackage(a)) {
             a.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_LAST_PKG, t.pkg).apply()
         }
-        track = if (t != null && pausedTooLong(t, c)) null else t   // stale pause: idle face (controller stays for resume)
+        track = t   // a paused session with metadata stays on the face (frozen bar, play button)
         render(a)
-    }
-
-    private var pausedPkg: String? = null
-    private var pausedSince = 0L
-
-    /**
-     * PAUSED for more than 30 minutes counts as idle (never show a stale track as current). The pause
-     * start is the session's own lastPositionUpdateTime when it has one; re-evaluates when the limit passes.
-     */
-    private fun pausedTooLong(t: Track, c: MediaController): Boolean {
-        if (t.playing) {
-            pausedPkg = null
-            return false
-        }
-        val now = SystemClock.elapsedRealtime()
-        if (pausedPkg != t.pkg) {
-            pausedPkg = t.pkg
-            val lpu = c.playbackState?.lastPositionUpdateTime ?: 0L
-            pausedSince = if (lpu in 1..now) lpu else now
-        }
-        val left = PAUSE_IDLE_MS - (now - pausedSince)
-        if (left <= 0) return true
-        main.removeCallbacks(evaluate)
-        main.postDelayed(evaluate, left + 500)
-        return false
     }
 
     private fun isPlayingState(s: Int?) = when (s) {
@@ -330,7 +304,7 @@ object MediaTracker {
         val duration = md?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
         val playing = isPlayingState(ps?.state)
         // the framework has no advertisement flag in MediaMetadata: Spotify marks ads by title / missing length
-        val ad = pkg == SPOTIFY && (title.equals("Advertisement", true) || (artist.isEmpty() && duration <= 0))
+        val ad = pkg == SPOTIFY && ((title.equals("Advertisement", true) || title.equals("Spotify", true)) && artist.isEmpty())
         return Track(
             pkg = pkg,
             appName = appName,

@@ -3,6 +3,7 @@ package io.github.oceansde012.dotline
 import android.Manifest
 import android.bluetooth.BluetoothA2dp
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothHeadset
 import android.bluetooth.BluetoothManager
@@ -269,11 +270,28 @@ object BudsRepo {
         false
     }
 
+    /**
+     * Only audio headphones / earbuds count. Watches (Major.WEARABLE), phones, computers and car kits never do,
+     * even when connected over A2DP / HFP. A device without a Bluetooth class counts only if it reports earbud batteries.
+     */
+    fun isHeadphones(d: BluetoothDevice): Boolean {
+        val cls = try { d.bluetoothClass } catch (e: Exception) { null }
+        if (cls == null) return metaBattery(d, META_LEFT_BATTERY) >= 0 || metaBattery(d, META_RIGHT_BATTERY) >= 0
+        if (cls.majorDeviceClass != BluetoothClass.Device.Major.AUDIO_VIDEO) return false
+        return when (cls.deviceClass) {
+            BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES, BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET,
+            BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE, BluetoothClass.Device.AUDIO_VIDEO_UNCATEGORIZED,
+            BluetoothClass.Device.AUDIO_VIDEO_PORTABLE_AUDIO -> true
+            else -> false   // car audio, loudspeaker, set-top box, video ...
+        }
+    }
+
     /** picks the device that reports batteries (earbuds) over e.g. a car kit, and reads them */
     private fun read(a: Context, devices: List<BluetoothDevice>): Buds {
-        if (devices.isEmpty()) return Buds.disconnected(last)
+        val audio = devices.filter { isHeadphones(it) }
+        if (audio.isEmpty()) return Buds.disconnected(last)
         var best: Buds? = null
-        for (d in devices) {
+        for (d in audio) {
             val name = try {
                 d.alias ?: d.name ?: ""
             } catch (e: Exception) {   // SecurityException without BLUETOOTH_CONNECT
@@ -620,7 +638,8 @@ object BudsRepo {
                 .joinToString(" ") { "${it.first}=${metaBattery(d, it.second).let { v -> if (v < 0) "-" else v.toString() }}" }
             val gb = deviceBattery(d).let { if (it < 0) "-" else it.toString() }
             val bc = broadcastLevel[d.address]?.let { "${it.percent}% ${(System.currentTimeMillis() - it.at) / 60_000}m ago" } ?: "-"
-            out.add("${if (conn) "*" else " "} $nm | meta $keys | getBatteryLevel=$gb | broadcast=$bc")
+            val hp = if (isHeadphones(d)) "headphones" else "not headphones"
+            out.add("${if (conn) "*" else " "} $nm | $hp | meta $keys | getBatteryLevel=$gb | broadcast=$bc")
         }
         val b = last
         out.add("source won: ${b?.source ?: "none"}; connected=${b?.connected}")
