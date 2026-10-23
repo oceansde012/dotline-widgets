@@ -39,10 +39,14 @@ class Buds(
     val companion: String? = null,
     /** where the winning battery value came from, for the diagnostics card */
     val source: String = "none",
+    /** when the battery values were read (ms), 0 = unknown */
+    val at: Long = 0L,
 ) {
     val hasSides get() = left >= 0 || right >= 0
     val lowest: Int get() = listOf(left, right, single).filter { it >= 0 }.minOrNull() ?: -1
     val key get() = listOf(permission, connected, name, left, right, case, single, address, companion ?: "")
+    /** same device, battery values dropped: used when the reading is too old to be shown as current */
+    fun withoutBattery() = Buds(permission, connected, name, -1, -1, -1, -1, address, model, companion, "stale", at)
     val title: String get() = model.ifBlank { name.uppercase(Locale.getDefault()) }
 
     companion object {
@@ -88,15 +92,21 @@ object BudsRepo {
     private const val META_LEFT_BATTERY = 10
     private const val META_RIGHT_BATTERY = 11
     private const val META_CASE_BATTERY = 12
+    private const val META_MAIN_BATTERY = 18
+    /** while earbuds are connected the battery is read again this often (in-process; the 15 min job covers a dead process) */
+    private const val POLL_MS = 5 * 60_000L
+    private const val FRESH_MS = 10 * 60_000L
 
-    private val NOTHING_X = listOf("com.nothing.smartcenter", "com.nothing.hearthstone")
+    private val NOTHING_X = listOf("com.nothing.smartcenter", "com.nothing.hearthstone", "com.nothing.ear", "com.nothing.nothingx", "com.nothingtech.ear")
     private const val GALAXY_WEARABLE = "com.samsung.android.app.watchmanager"
 
     private val main = Handler(Looper.getMainLooper())
-    private val io = Executors.newSingleThreadExecutor()
+    private val io = Executors.newSingleThreadExecutor()        // picture resolving (slow)
+    private val ioBattery = Executors.newSingleThreadExecutor() // Bluetooth reads (binder calls, never on main)
     @Volatile private var last: Buds? = null
-    private var refreshing = false
-    private val broadcastLevel = ConcurrentHashMap<String, Int>()
+    @Volatile private var refreshing = false
+    private class Level(val percent: Int, val at: Long)
+    private val broadcastLevel = ConcurrentHashMap<String, Level>()
     private val tried = HashSet<String>()
 
     // --- permission / state ----------------------------------------------------------------------
@@ -107,14 +117,14 @@ object BudsRepo {
     /** last known state for an immediate render; never blocks */
     fun current(ctx: Context): Buds {
         if (!hasPermission(ctx)) return Buds.noPermission()
-        last?.let { return it }
+        last?.let { return fresh(it) }
         val sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val dev = sp.getString(K_DEV, null)?.split('|')
         val known = if (dev != null && dev.size >= 3) Buds(true, false, dev[0], -1, -1, -1, -1, dev[1], dev[2], dev.getOrNull(3)?.ifBlank { null }) else null
         val s = sp.getString(K_LAST, null)
-        val parsed = s?.split('|')?.takeIf { it.size == 5 }?.let {
+        val parsed = s?.split('|')?.takeIf { it.size == 6 && System.currentTimeMillis() - (it[5].toLongOrNull() ?: 0L) < FRESH_MS }?.let {
             try {
-                Buds(true, true, it[0], it[1].toInt(), it[2].toInt(), it[3].toInt(), it[4].toInt(), known?.address ?: "", known?.model ?: "", known?.companion)
+                Buds(true, true, it[0], it[1].toInt(), it[2].toInt(), it[3].toInt(), it[4].toInt(), known?.address ?: "", known?.model ?: "", known?.companion, "saved", it[5].toLong())
             } catch (e: Exception) {
                 null
             }
@@ -123,9 +133,13 @@ object BudsRepo {
         return parsed ?: Buds.disconnected(known)
     }
 
+    /** a battery reading older than [FRESH_MS] is not shown as current */
+    private fun fresh(b: Buds): Buds =
+        if (b.connected && (b.hasSides || b.single >= 0 || b.case >= 0) && System.currentTimeMillis() - b.at > FRESH_MS) b.withoutBattery() else b
+
     private fun store(ctx: Context, b: Buds) {
         last = b
-        val v = if (b.connected) "${b.name.replace('|', ' ')}|${b.left}|${b.right}|${b.case}|${b.single}" else null
+        val v = if (b.connected) "${b.name.replace('|', ' ')}|${b.left}|${b.right}|${b.case}|${b.single}|${System.currentTimeMillis()}" else null
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().apply {
             if (v == null) remove(K_LAST) else putString(K_LAST, v)
             if (b.connected && b.address.isNotEmpty()) {
@@ -135,9 +149,14 @@ object BudsRepo {
     }
 
     fun onBatteryBroadcast(i: Intent) {
-        @Suppress("DEPRECATION") val d = i.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE) ?: return
+        val d = try {
+            @Suppress("DEPRECATION") i.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+        } catch (e: Exception) {
+            null
+        } ?: return
         val level = i.getIntExtra(EXTRA_BATTERY_LEVEL, -1)
-        if (level in 0..100) broadcastLevel[d.address] = level
+        val address = try { d.address } catch (e: Exception) { return }
+        if (level in 0..100) broadcastLevel[address] = Level(level, System.currentTimeMillis())
     }
 
     fun forgetTried() = synchronized(tried) { tried.clear() }
@@ -179,16 +198,17 @@ object BudsRepo {
             if (finished) return
             finished = true
             main.removeCallbacksAndMessages(TIMEOUT_TOKEN)
-            refreshing = false
-            val b = try {
-                // proxies first; the bonded list with isConnected() is the second way to find the device
-                if (devices.isEmpty()) bondedConnected(adapter).forEach { devices[it.address] = it }
-                read(a, devices.values.toList())
-            } catch (e: Exception) {
-                Log.w(TAG, "read failed", e)
-                Buds.disconnected(last)
+            val found = devices.values.toList()
+            ioBattery.execute {   // binder calls (metadata, bonded list) never on the main thread
+                val b = try {
+                    // proxies first; the bonded list with isConnected() is the second way to find the device
+                    read(a, if (found.isNotEmpty()) found else bondedConnected(adapter))
+                } catch (e: Throwable) {
+                    Log.w(TAG, "read failed", e)
+                    Buds.disconnected(last)
+                }
+                publish(a, b)
             }
-            publish(a, b)
         }
         fun done() {
             pending--
@@ -224,18 +244,22 @@ object BudsRepo {
     }
 
     private val TIMEOUT_TOKEN = Any()
+    private val POLL_TOKEN = Any()
 
     private fun publish(a: Context, b: Buds) {
         refreshing = false
         store(a, b)
         BudsWidgetProvider.updateAll(a)
         resolvePictureAsync(a, b)
+        // keep reading while earbuds are connected, so a reading that goes stale is replaced (or dropped) in time
+        main.removeCallbacksAndMessages(POLL_TOKEN)
+        if (b.connected) main.postAtTime({ refreshAsync(a) }, POLL_TOKEN, android.os.SystemClock.uptimeMillis() + POLL_MS)
     }
 
     @Suppress("MissingPermission")
     private fun bondedConnected(adapter: BluetoothAdapter): List<BluetoothDevice> = try {
-        adapter.bondedDevices.filter { isConnected(it) }
-    } catch (e: Exception) {
+        adapter.bondedDevices.orEmpty().filter { isConnected(it) }
+    } catch (e: Exception) {   // SecurityException without BLUETOOTH_CONNECT
         emptyList()
     }
 
@@ -252,27 +276,33 @@ object BudsRepo {
         for (d in devices) {
             val name = try {
                 d.alias ?: d.name ?: ""
-            } catch (e: SecurityException) {
+            } catch (e: Exception) {   // SecurityException without BLUETOOTH_CONNECT
                 ""
             }
+            val address = try { d.address } catch (e: Exception) { continue }
             val l = metaBattery(d, META_LEFT_BATTERY)
             val r = metaBattery(d, META_RIGHT_BATTERY)
             val c = metaBattery(d, META_CASE_BATTERY)
             var single = -1
             var source = if (l >= 0 || r >= 0) "METADATA L/R" else "none"
             if (l < 0 && r < 0) {
-                single = deviceBattery(d)
-                if (single >= 0) source = "getBatteryLevel"
-                else broadcastLevel[d.address]?.let { single = it; source = "BATTERY_LEVEL_CHANGED broadcast" }
+                single = metaBattery(d, META_MAIN_BATTERY)
+                if (single >= 0) source = "METADATA main"
+                else {
+                    single = deviceBattery(d)
+                    if (single >= 0) source = "getBatteryLevel"
+                    else broadcastLevel[address]?.takeIf { System.currentTimeMillis() - it.at < FRESH_MS }
+                        ?.let { single = it.percent; source = "BATTERY_LEVEL_CHANGED broadcast" }
+                }
             }
             val modelRaw = metaString(d, META_MODEL_NAME) ?: name
-            val b = Buds(true, true, name, l, r, c, single, d.address, prettyModel(modelRaw), companionFor(a, d, modelRaw), source)
+            val b = Buds(true, true, name, l, r, c, single, address, prettyModel(modelRaw), companionFor(a, d, modelRaw), source, System.currentTimeMillis())
             if (best == null || score(b) > score(best)) best = b
         }
         return best ?: Buds.disconnected(last)
     }
 
-    private fun score(b: Buds) = (if (b.hasSides) 2 else 0) + (if (b.single >= 0) 1 else 0) + (if (b.model.isNotBlank()) 0 else 0)
+    private fun score(b: Buds) = (if (b.hasSides) 2 else 0) + (if (b.single >= 0) 1 else 0)
 
     /** `Ear (3)` -> `NOTHING EAR (3)`; other models are shown as reported */
     fun prettyModel(raw: String): String {
@@ -486,8 +516,12 @@ object BudsRepo {
     @Volatile var lastScan: NxScan? = null
         private set
 
-    private val GENERIC = listOf("buds", "earbud", "device", "headset", "product", "img_ear", "ic_ear", "png_ear", "ear")
+    private val GENERIC = listOf("buds", "earbud", "headset", "img_ear", "ic_ear", "png_ear")
     private val REJECT = listOf("launcher", "ic_launcher", "background", "notification", "logo", "banner")
+
+    /** right model but not the pair itself: never auto-picked, still offered in the picker */
+    private val NOT_THE_PAIR = listOf("case", "charg", "guide", "tutorial", "anim", "left", "right", "box", "pair_")
+    private const val AUTO_PICK_MIN = 100
 
     private fun slugs(model: String): List<String> {
         val m = model.lowercase(Locale.ROOT).replace("nothing", "").trim()
@@ -508,7 +542,8 @@ object BudsRepo {
         if (REJECT.any { it in n }) return 0
         var s = 0
         for (k in slug) if (k.filter { it.isLetterOrDigit() } in norm && k.isNotEmpty()) s = maxOf(s, 100)
-        if (s == 0) for (g in GENERIC) if (g.filter { it.isLetterOrDigit() } in norm) s = maxOf(s, if (g == "ear") 5 else 15)
+        if (s == 0) for (g in GENERIC) if (g.filter { it.isLetterOrDigit() } in norm) s = maxOf(s, 15)
+        if (s > 0 && NOT_THE_PAIR.any { it in n }) s = minOf(s, 50)
         return s
     }
 
@@ -544,7 +579,7 @@ object BudsRepo {
                 Log.w(TAG, "scan $p", ex)
             }
         }
-        val picked = all.filter { it.score > 0 && it.w >= 100 && it.h >= 100 }
+        val picked = all.filter { it.score >= AUTO_PICK_MIN && it.w >= 100 && it.h >= 100 }
             .maxWithOrNull(compareBy<Cand>({ it.score }, { it.w * it.h }))
         return NxScan(pkgs, all, picked).also { lastScan = it }
     }
@@ -576,7 +611,6 @@ object BudsRepo {
         val adapter = try { a.getSystemService(BluetoothManager::class.java)?.adapter } catch (e: Exception) { null }
         out.add("adapter: ${if (adapter == null) "none" else if (adapter.isEnabled) "on" else "off"}")
         val bonded = try { adapter?.bondedDevices.orEmpty() } catch (e: Exception) { emptySet() }
-        val mb = metadataBlocked
         getMetadataMethod
         out.add("metadata: ${if (getMetadataMethod == null || metadataBlocked != null) "blocked (${metadataBlocked ?: "?"})" else "available"}")
         for (d in bonded.take(8)) {
@@ -585,7 +619,7 @@ object BudsRepo {
             val keys = listOf("L" to META_LEFT_BATTERY, "R" to META_RIGHT_BATTERY, "case" to META_CASE_BATTERY)
                 .joinToString(" ") { "${it.first}=${metaBattery(d, it.second).let { v -> if (v < 0) "-" else v.toString() }}" }
             val gb = deviceBattery(d).let { if (it < 0) "-" else it.toString() }
-            val bc = broadcastLevel[d.address]?.toString() ?: "-"
+            val bc = broadcastLevel[d.address]?.let { "${it.percent}% ${(System.currentTimeMillis() - it.at) / 60_000}m ago" } ?: "-"
             out.add("${if (conn) "*" else " "} $nm | meta $keys | getBatteryLevel=$gb | broadcast=$bc")
         }
         val b = last
@@ -598,4 +632,5 @@ object BudsRepo {
         return out
     }
 }
+
 

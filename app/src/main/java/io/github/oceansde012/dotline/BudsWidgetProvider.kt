@@ -82,10 +82,9 @@ class BudsWidgetProvider : AppWidgetProvider() {
         val plate = if (pic.bmp != null) {
             BudsArt.plate(pic.bmp, picW, inner, density, radius, dim = !connected, tag = pic.tag)
         } else {
-            val low = connected && b.lowest in 0..LOW_PERCENT
             BudsArt.illustrationPlate(
                 picW, inner, density, radius, BudsArt.styleFor(b.model.ifBlank { b.name }),
-                if (connected && b.hasSides) b.left else -1, if (connected && b.hasSides) b.right else -1, connected, low,
+                if (connected && b.hasSides) b.left else -1, if (connected && b.hasSides) b.right else -1, connected,
             )
         }
         rv.setImageViewBitmap(R.id.pic, plate)
