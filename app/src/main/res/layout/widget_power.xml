@@ -43,6 +43,18 @@
         android:scaleType="fitXY"
         android:src="@drawable/preview_power_bar" />
 
+    <!-- the red charging dot, drawn over the bar's unlit dot; only its alpha is animated (breathing) -->
+    <ImageView
+        android:id="@+id/pulse"
+        android:layout_width="13dp"
+        android:layout_height="13dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="90dp"
+        android:layout_marginTop="15dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
+
     <ImageView
         android:id="@+id/status"
         android:layout_width="wrap_content"

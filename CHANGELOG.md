@@ -4,7 +4,8 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
-- Power: while the phone charges, the red dot runs along the lit dots of the bar (screen on only).
+- Power: while the phone charges, the last lit dot of the bar is red and slowly breathes (screen on only).
+- All widgets can now be added to the lock screen on Android versions that allow widgets there (Android 16 QPR2 and newer, or an OEM that supports it).
 - Weather: the city is shown on the small 2x2 widget too, to the right of the icon (long names wrap after a hyphen).
 - Player: bolder controls, drawn as solid dot shapes (play, pause, previous, next) instead of thin outlines.
 - Buds: separate left / right / case battery for Nothing earbuds, asked directly from the earbuds over the same Bluetooth service the Nothing X app uses (read-only battery request; the case is reported while the earbuds are in it).

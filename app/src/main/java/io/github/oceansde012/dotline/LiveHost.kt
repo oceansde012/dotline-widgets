@@ -73,7 +73,7 @@ object LiveHost {
                     PowerWidgetProvider.refresh(context)
                     Ticker.tick(context)
                 }
-                Intent.ACTION_SCREEN_ON -> PowerWidgetProvider.resumeRun(context)   // the red dot runs only with the screen on
+                Intent.ACTION_SCREEN_ON -> PowerWidgetProvider.resumePulse(context)   // the red dot breathes only with the screen on
                 // minute boundary (also covers the date rollover) and clock / zone changes
                 Intent.ACTION_TIME_TICK, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED -> Ticker.tick(context)
                 // sticky: delivered once on registration, then on every charge-state tick
