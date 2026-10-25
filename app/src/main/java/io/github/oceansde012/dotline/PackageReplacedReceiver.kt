@@ -15,6 +15,8 @@ class PackageReplacedReceiver : BroadcastReceiver() {
         WeatherWidgetProvider.updateAll(a)
         HeadWidgetProvider.updateAll(a)
         BudsWidgetProvider.updateAll(a)
+        BudsRepo.forgetTried()
+        BudsRepo.refreshAsync(a)   // re-read the connected earbuds and their picture right after the update
         PowerWidgetProvider.refresh(a)
         // the clock widget has no update helper: ask its provider through the standard broadcast
         val mgr = android.appwidget.AppWidgetManager.getInstance(a)
