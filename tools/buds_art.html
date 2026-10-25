@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Buds illustration</title>
+<!-- Browser mirror of BudsArt.kt (the earbuds picture of the Buds widget): keep the two in sync.
+     Open it to look at the states, or render the picker preview PNG with
+       node tools/buds_art.mjs <out.png>      (Playwright; writes app/src/main/res/drawable-nodpi/pv_buds.png by default)
+     ?w=62&h=42&scale=4&state=on|low|dim picks the plate size (dp), pixel scale and state. -->
+<body style="margin:0;background:#101012"><canvas id="c"></canvas><script>
+const q = new URLSearchParams(location.search);
+const WD = +(q.get('w') || 62), HD = +(q.get('h') || 42), SC = +(q.get('scale') || 4), STATE = q.get('state') || 'on';
+const c = document.getElementById('c'), x = c.getContext('2d');
+c.width = Math.round(WD * SC); c.height = Math.round(HD * SC);
+function rr(a, b, w, h, r) { x.beginPath(); x.roundRect(a, b, w, h, r); }
+// one bud in a 120x170 box (right bud seen from outside); the left bud is the mirror image
+function bud(ox, oy, k, mirror, state) {
+  x.save(); x.translate(ox, oy); x.scale(k, k); if (mirror) { x.translate(120, 0); x.scale(-1, 1); }
+  const dim = state === 'dim', low = state === 'low';
+  x.globalAlpha = dim ? .38 : 1;
+  // ear tip: tilted silicone dome with the dark opening on its rim
+  x.save(); x.translate(40, 46); x.rotate(-0.62);
+  let g = x.createRadialGradient(-10, -12, 3, 0, 0, 48); g.addColorStop(0, '#FFFFFF'); g.addColorStop(.65, '#ECECEF'); g.addColorStop(1, '#B4B4BB');
+  x.fillStyle = g; x.beginPath(); x.ellipse(0, 0, 40, 33, 0, 0, 7); x.fill();
+  g = x.createLinearGradient(-20, -24, 10, 10); g.addColorStop(0, '#2C2C31'); g.addColorStop(1, '#08080A');
+  x.fillStyle = g; x.beginPath(); x.ellipse(-4, -6, 27, 19, 0, 0, 7); x.fill();
+  x.fillStyle = '#E4E4E8'; x.beginPath(); x.ellipse(-4, -5, 21, 13, 0, 0, 7); x.fill();
+  g = x.createLinearGradient(0, -18, 0, 8); g.addColorStop(0, '#1B1B1F'); g.addColorStop(1, '#050506');
+  x.fillStyle = g; x.beginPath(); x.ellipse(-3, -4, 16, 8.5, 0, 0, 7); x.fill();
+  x.fillStyle = 'rgba(255,255,255,.7)'; x.beginPath(); x.ellipse(-28, 10, 8, 2.5, -.5, 0, 7); x.fill();
+  x.restore();
+  // stem: clear shell around a dark core
+  x.save(); x.translate(60, 100); x.rotate(0.07); x.translate(-60, -100);
+  rr(48, 34, 40, 126, 16);
+  g = x.createLinearGradient(46, 0, 86, 0); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(.5, 'rgba(255,255,255,.14)'); g.addColorStop(1, 'rgba(255,255,255,.4)');
+  x.fillStyle = g; x.fill(); x.lineWidth = 1.6; x.strokeStyle = 'rgba(230,232,238,.95)'; x.stroke();
+  rr(53, 39, 30, 116, 12); x.fillStyle = '#0B0B0D'; x.fill();
+  x.save(); rr(53, 39, 30, 116, 12); x.clip(); x.fillStyle = 'rgba(255,255,255,.07)';
+  for (let yy = 44; yy < 152; yy += 4) for (let xx = 56 + ((yy / 4) % 2) * 2; xx < 82; xx += 4) { x.beginPath(); x.arc(xx, yy, .7, 0, 7); x.fill(); }
+  x.restore();
+  // button: the one accent (red when this bud is low)
+  g = x.createRadialGradient(62, 56, 1, 64, 58, 9);
+  if (low) { g.addColorStop(0, '#FF5A60'); g.addColorStop(1, '#C4141C'); } else { g.addColorStop(0, '#FFFFFF'); g.addColorStop(1, '#B9BBC2'); }
+  x.fillStyle = g; x.beginPath(); x.arc(64, 58, 7.5, 0, 7); x.fill();
+  // speaker grille top right, microphone grille at the foot
+  x.fillStyle = '#2A2A2F'; rr(72, 44, 9, 13, 3); x.fill(); x.fillStyle = 'rgba(255,255,255,.35)';
+  for (let i = 0; i < 4; i++) x.fillRect(73.5, 46 + i * 3, 6, .9);
+  x.fillStyle = '#2A2A2F'; rr(60, 144, 16, 7, 2.5); x.fill(); x.fillStyle = 'rgba(255,255,255,.35)';
+  for (let i = 0; i < 3; i++) x.fillRect(62, 145.2 + i * 2, 12, .7);
+  x.restore(); x.restore();
+}
+// the pair, centred in the plate with 10% air (as BudsArt.illustrationPlate)
+const pairW = 112 + 120, k = Math.min(c.width / pairW, c.height / 170) * .9;
+const ox = (c.width - pairW * k) / 2, oy = (c.height - 170 * k) / 2;
+bud(ox, oy, k, false, STATE); bud(ox + 112 * k, oy, k, true, STATE);
+</script>
