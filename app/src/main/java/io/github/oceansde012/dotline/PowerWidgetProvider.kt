@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
+import android.view.View
 import android.widget.RemoteViews
 import kotlin.math.ceil
 import kotlin.math.roundToInt
@@ -40,7 +41,7 @@ class PowerWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onDisabled(context: Context) {
-        stopRun()
+        stopPulse()
         WeatherJob.cancelIfUnused(context)
     }
 
@@ -61,83 +62,83 @@ class PowerWidgetProvider : AppWidgetProvider() {
         private const val LOW_PERCENT = 15
         private const val HOT_C = 40f
         private const val DOTS = 10
-        private const val RUN_STEP_MS = 450L
+        private const val PULSE_STEP_MS = 200L
+        private const val PULSE_PERIOD_MS = 2600L
+        private const val PULSE_MIN = 0.2f
         private var lastKey: List<Any>? = null
 
-        // the red dot runs along the lit dots while charging (screen on only): partial updates of the bar bitmap
+        // while charging (screen on only) the one red dot, the last lit one, breathes: a separate overlay dot whose
+        // alpha is the only thing a tick sends (a few bytes, no bitmap). Off / solid red when the screen is off,
+        // Battery Saver is on or the user removed animations.
         private val main = Handler(Looper.getMainLooper())
-        private var runApp: Context? = null
-        private var runState: State? = null
-        private var runPos = 0
-        private val runTick = Runnable { runStep() }
+        private var pulseApp: Context? = null
+        private var pulseOn = false
+        private val pulseTick = Runnable { pulseStep() }
 
         private fun litDots(level: Int) = ceil(level / 10.0).toInt().coerceIn(0, DOTS)
 
-        /** true when the red dot has somewhere to run: charging, not low (then the hero is red) and 2+ lit dots */
-        private fun runs(s: State) = s.charging && !s.low && litDots(s.level) > 1
+        /** the red dot is the last lit one while charging, unless the level is low (then the hero is red; never both) */
+        private fun redDot(s: State) = s.charging && !s.low && litDots(s.level) > 0
 
-        private fun isInteractive(a: Context) = a.getSystemService(PowerManager::class.java)?.isInteractive ?: true
-
-        private fun stopRun() {
-            main.removeCallbacks(runTick)
+        /** the red dot may move: screen on, no Battery Saver, system animations not turned off */
+        private fun animated(a: Context): Boolean {
+            val pm = a.getSystemService(PowerManager::class.java)
+            if (pm != null && (!pm.isInteractive || pm.isPowerSaveMode)) return false
+            return android.provider.Settings.Global.getFloat(a.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
         }
 
-        private fun scheduleRun(a: Context, s: State) {
-            main.removeCallbacks(runTick)
-            runApp = a
-            runState = s
-            if (runs(s) && isInteractive(a)) main.postDelayed(runTick, RUN_STEP_MS)
+        /** 0..255, a slow cosine between [PULSE_MIN] and full; time based, so a full render and the ticks agree */
+        private fun pulseAlpha(): Int {
+            val t = (System.currentTimeMillis() % PULSE_PERIOD_MS).toDouble() / PULSE_PERIOD_MS
+            val k = 0.5 - 0.5 * kotlin.math.cos(2 * Math.PI * t)
+            return ((PULSE_MIN + (1f - PULSE_MIN) * k) * 255).roundToInt().coerceIn(0, 255)
         }
 
-        /** the screen came on: pick the run up again (it stops itself on the first tick with the screen off) */
-        fun resumeRun(ctx: Context) {
+        private fun stopPulse() {
+            main.removeCallbacks(pulseTick)
+            pulseOn = false
+            pulseApp = null
+        }
+
+        /** (re)starts the tick chain when the red dot is shown and may move; a no-op chain is cheap to call again */
+        private fun schedulePulse(a: Context, s: State) {
+            main.removeCallbacks(pulseTick)
+            pulseApp = a
+            pulseOn = redDot(s) && animated(a)
+            if (pulseOn) main.postDelayed(pulseTick, PULSE_STEP_MS)
+        }
+
+        /** the screen came on: pick the pulse up again */
+        fun resumePulse(ctx: Context) {
             val a = ctx.applicationContext
             if (AppWidgetManager.getInstance(a).getAppWidgetIds(ComponentName(a, PowerWidgetProvider::class.java)).isEmpty()) return
-            scheduleRun(a, current(a))
+            schedulePulse(a, current(a))
         }
 
-        private fun runStep() {
-            val a = runApp ?: return
-            val s = runState ?: return
-            if (!runs(s) || !isInteractive(a)) return
+        private fun pulseStep() {
+            val a = pulseApp ?: return
             val mgr = AppWidgetManager.getInstance(a)
             val ids = mgr.getAppWidgetIds(ComponentName(a, PowerWidgetProvider::class.java))
-            if (ids.isEmpty()) return
-            val lit = litDots(s.level)
-            runPos = (runPos + 1) % lit
-            val density = a.resources.displayMetrics.density
-            for (id in ids) {
-                try {
-                    val sz = WidgetSize.of(a, mgr, id, 230f, 62f)
-                    val rv = RemoteViews(a.packageName, R.layout.widget_power)
-                    rv.putArt(R.id.bar, DotText.bar(DOTS, lit, Nd.FG, runPos, barGeo(a, sz.width, sz.height, s.level).pitch, density))
-                    mgr.partiallyUpdateAppWidget(id, rv)
-                } catch (e: Exception) {
-                    Log.w("NdPower", "run step failed", e)
-                }
+            if (ids.isEmpty()) {
+                pulseOn = false
+                return
             }
-            main.postDelayed(runTick, RUN_STEP_MS)
-        }
-
-        /** where the bar sits: left edge, column width and dot pitch (dp); shared by the full render and the run steps */
-        private class BarGeo(val x0: Float, val colW: Float, val pitch: Float)
-
-        private fun barGeo(ctx: Context, w: Float, h: Float, level: Int): BarGeo {
-            val pad = Tile.pad(h).coerceAtLeast(12f)
-            val hc = minOf(h - 2f * pad, 38f).coerceAtLeast(20f)
-            val text = level.toString()
-            val numW = DotText.cols(text) * DotText.pitchFor(text, 0.36f * w, hc)
-            val unitSize = (0.2f * h).coerceIn(10f, 13f)
-            val unitW = LabelText.art(ctx, "%", unitSize, Nd.DIM, 30f).wDp
-            val x0 = pad + 2f + numW + 4f + unitW + 14f
-            val colW = (w - pad - 2f - x0).coerceAtLeast(50f)
-            return BarGeo(x0, colW, minOf(colW / DOTS, hc * 0.48f))
+            val live = redDot(current(a)) && animated(a)   // the live battery, not a snapshot
+            // when it stops (screen off, unplugged, saver) the dot is left solid, never at a dim phase
+            val rv = RemoteViews(a.packageName, R.layout.widget_power)
+            rv.setInt(R.id.pulse, "setImageAlpha", if (live) pulseAlpha() else 255)
+            try {
+                mgr.partiallyUpdateAppWidget(ids, rv)
+            } catch (e: Exception) {
+                Log.w("NdPower", "pulse step failed", e)
+            }
+            if (live) main.postDelayed(pulseTick, PULSE_STEP_MS) else pulseOn = false
         }
 
         /** the face for a [widthDp] x [heightDp] tile from the CURRENT battery state (gallery, generated picker preview) */
         fun buildPreview(ctx: Context, widthDp: Float, heightDp: Float): RemoteViews {
             val a = ctx.applicationContext
-            return PowerWidgetProvider().render(a, widthDp, heightDp, current(a))
+            return PowerWidgetProvider().render(a, widthDp, heightDp, current(a), live = false)
         }
 
         /** fresh read of the sticky battery broadcast */
@@ -161,19 +162,21 @@ class PowerWidgetProvider : AppWidgetProvider() {
             val ids = mgr.getAppWidgetIds(ComponentName(a, PowerWidgetProvider::class.java))
             if (ids.isEmpty()) return
             val s = state(a, intent)
-            if (!force && s.key == lastKey) return
+            if (!force && s.key == lastKey) {
+                if (!pulseOn) schedulePulse(a, s)   // a missed SCREEN_ON must not leave the dot dead until the next 1%
+                return
+            }
             lastKey = s.key
             val p = PowerWidgetProvider()
-            val runIdx = if (runs(s)) runPos.coerceIn(0, litDots(s.level) - 1) else -1
             for (id in ids) {
                 val sz = WidgetSize.of(a, mgr, id, 230f, 62f)
                 try {
-                    mgr.updateAppWidget(id, p.render(a, sz.width, sz.height, s, runIdx))
+                    mgr.updateAppWidget(id, p.render(a, sz.width, sz.height, s))
                 } catch (e: Exception) {
                     Log.w("NdPower", "render failed", e)
                 }
             }
-            scheduleRun(a, s)
+            schedulePulse(a, s)
         }
 
         fun state(ctx: Context, i: Intent): State {
@@ -198,8 +201,8 @@ class PowerWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    /** [runIdx]: dot the red runner stands on while charging, -1 = on the last lit dot (static face, previews) */
-    private fun render(ctx: Context, w: Float, h: Float, s: State, runIdx: Int = -1): RemoteViews {
+    /** [live]: false for the gallery / picker preview, which must not freeze at a dim phase of the pulse */
+    private fun render(ctx: Context, w: Float, h: Float, s: State, live: Boolean = true): RemoteViews {
         val density = ctx.resources.displayMetrics.density
         val pad = Tile.pad(h).coerceAtLeast(12f)
         val rv = RemoteViews(ctx.packageName, R.layout.widget_power)
@@ -222,15 +225,23 @@ class PowerWidgetProvider : AppWidgetProvider() {
         val unitW = unit.wDp
         rv.margins(R.id.unit, start = pad + 2f + num.wDp + 4f, top = top + hc - unit.hDp)
 
-        val geo = barGeo(ctx, w, h, s.level)
-        val x0 = geo.x0
-        val colW = geo.colW
-        val pitchB = geo.pitch
+        val x0 = pad + 2f + num.wDp + 4f + unitW + 14f
+        val colW = (w - pad - 2f - x0).coerceAtLeast(50f)
+        val pitchB = minOf(colW / DOTS, hc * 0.48f)
         val lit = litDots(s.level)
-        val accentDot = if (!low && s.charging && lit > 0) (if (runIdx in 0 until lit) runIdx else lit - 1) else -1
-        val bar = DotText.bar(DOTS, lit, Nd.FG, accentDot, pitchB, density)
+        // charging: the last lit dot is the red one, drawn as an overlay (it breathes) over an unlit dot
+        val accentDot = if (!low && s.charging && lit > 0) lit - 1 else -1
+        val bar = DotText.bar(DOTS, if (accentDot >= 0) lit - 1 else lit, Nd.FG, -1, pitchB, density)
         rv.putArt(R.id.bar, bar)
         rv.margins(R.id.bar, start = x0, top = top)
+        if (accentDot >= 0) {
+            rv.putArt(R.id.pulse, DotText.bar(1, 0, Nd.FG, 0, pitchB, density))
+            rv.margins(R.id.pulse, start = x0 + accentDot * pitchB, top = top)
+            rv.setInt(R.id.pulse, "setImageAlpha", if (live && animated(ctx)) pulseAlpha() else 255)
+            rv.setViewVisibility(R.id.pulse, View.VISIBLE)
+        } else {
+            rv.setViewVisibility(R.id.pulse, View.GONE)
+        }
 
         // status line under the bar, bottom aligned with the numerals
         val statusH = (hc - pitchB - 4f).coerceAtLeast(12f)
