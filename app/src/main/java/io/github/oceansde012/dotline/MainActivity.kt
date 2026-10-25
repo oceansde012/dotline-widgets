@@ -313,6 +313,7 @@ class MainActivity : Activity() {
         diagCard.addView(body, ui.lp())
         head.setOnClickListener {
             diagOpen = !diagOpen
+            head.stateDescription = getString(if (diagOpen) R.string.state_expanded else R.string.state_collapsed)
             diagCard.setPadding(ui.dp(16), ui.dp(8), ui.dp(16), ui.dp(if (diagOpen) 16 else 8))
             body.visibility = if (diagOpen) View.VISIBLE else View.GONE
             arrow.text = if (diagOpen) "−" else "+"
@@ -421,6 +422,7 @@ class MainActivity : Activity() {
 
     private fun setSetupOpen(on: Boolean) {
         setupOpen = on
+        (setupArrow.parent as? View)?.stateDescription = getString(if (on) R.string.state_expanded else R.string.state_collapsed)
         setupBox.visibility = if (on) View.VISIBLE else View.GONE
         setupArrow.text = if (on) "−" else "+"
     }

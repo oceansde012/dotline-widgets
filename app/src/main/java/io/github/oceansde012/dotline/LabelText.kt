@@ -116,9 +116,9 @@ internal fun RemoteViews.putLabel(id: Int, a: DotText.Art, text: CharSequence) {
 /** the sum of a label's heights is needed before it is placed: render, set, and return the art */
 internal fun RemoteViews.label(
     ctx: Context, id: Int, text: String, sizeDp: Float, color: Int, maxWidthDp: Float,
-    medium: Boolean = false, maxLines: Int = 1, minSizeDp: Float = sizeDp, spacingEm: Float = 0.04f,
+    medium: Boolean = false, maxLines: Int = 1, minSizeDp: Float = sizeDp,
 ): DotText.Art {
-    val a = LabelText.art(ctx, text, sizeDp, color, maxWidthDp, medium, maxLines, minSizeDp, spacingEm)
+    val a = LabelText.art(ctx, text, sizeDp, color, maxWidthDp, medium, maxLines, minSizeDp)
     putLabel(id, a, text)
     return a
 }

@@ -172,7 +172,11 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 val cx = pad + iconDp + 6f
                 val right = w - pad - (if (rainSoon) dot + 6f else 0f)
                 // no letter spacing: "PODILSKYI" has to fit a ~55 dp column at 8 dp
-                val c = rv.label(ctx, R.id.city, cityName.replace("-", "-\n"), label - 1f, Nd.DIM, (right - cx).coerceAtLeast(30f), maxLines = 2, minSizeDp = 8f, spacingEm = 0f)
+                val c = LabelText.art(
+                    ctx, breakAtHyphen(cityName), label - 1f, Nd.DIM, (right - cx).coerceAtLeast(30f),
+                    maxLines = 2, minSizeDp = 8f, spacingEm = 0f,
+                )
+                rv.putLabel(R.id.city, c, cityName)
                 rv.margins(R.id.city, start = right - c.wDp, top = pad + (iconDp - c.hDp) / 2f)
             } else {   // city: sits between the icon and the accent dot
                 val cx = pad + iconDp + 10f
@@ -181,6 +185,17 @@ class WeatherWidgetProvider : AppWidgetProvider() {
             }
         }
         return rv
+    }
+
+    /**
+     * The platform line breaker offers no break after a hyphen, so "KAMIANETS-PODILSKYI" would be cut in the middle
+     * of a word. A name with a space wraps there by itself; otherwise the hyphen nearest the middle gets the break.
+     */
+    private fun breakAtHyphen(name: String): String {
+        if (' ' in name) return name
+        val i = name.indices.filter { name[it] == '-' && it in 1 until name.length - 1 }
+            .minByOrNull { kotlin.math.abs(it - (name.length - 1) / 2f) } ?: return name
+        return name.substring(0, i + 1) + "\n" + name.substring(i + 1)
     }
 
     /** the forecast is stored in Celsius; the unit chosen in the app is applied here, so a switch is instant */

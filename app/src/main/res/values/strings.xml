@@ -70,6 +70,8 @@
     <string name="sec_widgets">WIDGETS</string>
     <string name="sec_settings">SETTINGS</string>
     <string name="status_ready">✓ READY</string>
+    <string name="state_expanded">expanded</string>
+    <string name="state_collapsed">collapsed</string>
     <string name="setup_all_done">✓ ALL SET</string>
     <string name="setup_progress">%1$d OF %2$d READY</string>
 

@@ -109,8 +109,10 @@ object BudsRepo {
     private class Level(val percent: Int, val at: Long)
     private val broadcastLevel = ConcurrentHashMap<String, Level>()
     private val tried = HashSet<String>()
-    private val failedAt = ConcurrentHashMap<String, Long>()   // picture resolve that found nothing: retried after RETRY_MS
-    private const val RETRY_MS = 2 * 60_000L
+    private val failedAt = ConcurrentHashMap<String, Long>()   // picture resolve that found nothing: retried later
+    private val failCount = ConcurrentHashMap<String, Int>()
+    private const val RETRY_MS = 2 * 60_000L   // times the number of failures so far
+    private const val MAX_FAILS = 5            // then only an explicit retry (app opened, colour changed, update) tries again
 
     // --- permission / state ----------------------------------------------------------------------
 
@@ -162,7 +164,11 @@ object BudsRepo {
         if (level in 0..100) broadcastLevel[address] = Level(level, System.currentTimeMillis())
     }
 
-    fun forgetTried() = synchronized(tried) { tried.clear() }
+    fun forgetTried() {
+        synchronized(tried) { tried.clear() }
+        failedAt.clear()
+        failCount.clear()
+    }
 
     // --- refresh -----------------------------------------------------------------------------------
 
@@ -473,8 +479,10 @@ object BudsRepo {
     private fun resolvePictureAsync(a: Context, b: Buds) {
         if (!b.connected || b.address.isEmpty()) return
         val h = hash(b.address)
+        val fails = failCount[h] ?: 0
+        if (fails >= MAX_FAILS) return
         val failed = failedAt[h]
-        if (failed != null && android.os.SystemClock.elapsedRealtime() - failed < RETRY_MS) return
+        if (failed != null && android.os.SystemClock.elapsedRealtime() - failed < RETRY_MS * fails) return
         synchronized(tried) { if (!tried.add(h)) return }
         io.execute {
             try {
@@ -490,6 +498,7 @@ object BudsRepo {
     /** nothing found this time (the sources are often not ready right after an update or a reconnect): try again later */
     private fun resolveFailed(h: String) {
         failedAt[h] = android.os.SystemClock.elapsedRealtime()
+        failCount[h] = (failCount[h] ?: 0) + 1
         synchronized(tried) { tried.remove(h) }
     }
 
@@ -544,9 +553,9 @@ object BudsRepo {
         }
         val sp = srcPref(a).edit()
         // a failed attempt must not wipe the picture that was found earlier
-        if (src != null) { sp.putString("src_$h", src); failedAt.remove(h) } else resolveFailed(h)
+        if (src != null) { sp.putString("src_$h", src); failedAt.remove(h); failCount.remove(h) } else resolveFailed(h)
         sp.apply()
-        notes.append(" | result=${src ?: "ILLUSTRATION"}")
+        notes.append(" | result=${src ?: (if (auto.exists()) "kept earlier picture" else "ILLUSTRATION")}")
         resolveNotes = notes.toString()
         if (src != null) BudsWidgetProvider.updateAll(a)
     }

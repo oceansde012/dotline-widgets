@@ -47,6 +47,8 @@
     <string name="sec_widgets">ВІДЖЕТИ</string>
     <string name="sec_settings">ПАРАМЕТРИ</string>
     <string name="status_ready">✓ ГОТОВО</string>
+    <string name="state_expanded">розгорнуто</string>
+    <string name="state_collapsed">згорнуто</string>
     <string name="setup_all_done">✓ УСЕ НАЛАШТОВАНО</string>
     <string name="setup_progress">%1$d З %2$d ГОТОВО</string>
 
