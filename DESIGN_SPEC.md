@@ -30,7 +30,7 @@ Typography (3 roles only):
 ## 2. Widgets
 
 ### 2.1 Head — 5×1 (`HeadWidgetProvider`)
-- Left: `FRI 23 OCT` (Label, fg). Week day and month localised (uk/en from system locale).
+- Left: `FRI 23 OCT` (Label, fg). Week day and month localised (en/uk/ru: the app language, see §4).
 - Right: next alarm via `AlarmManager.getNextAlarmClock()`: caption `ALARM` (Label, dim) over the time in dots. If none: an honest dim `NO ALARM` label. No weather here (weather lives only in the Weather widget — kills the duplication).
 - Accent: none.
 - Tap left → Calendar app; tap right → Clock alarms.
@@ -91,7 +91,7 @@ Single scroll, black `#000`, same tokens. One type family on the whole screen: P
 1. Header: `DOTLINE` in the hero font, version in Label dim.
 2. **Widgets gallery** first (it is what the app is for): per widget a title + one-line description, a compact `ADD TO HOME` pill (`requestPinAppWidget`, 40 dp) and the live preview centred under it (the provider's real RemoteViews applied into the activity).
 3. **Setup**: one summary row (`✓ ALL SET`, or `2 OF 4 READY` with the red dot). All done = collapsed; anything missing = open. Inside, tile cards with status dot (fg / accent) and one action each: notification access (hint for "Allow restricted settings" on Samsung), Bluetooth, weather city (search field + `USE MY LOCATION`, both quiet chips), auto-updates (install permission). A done card collapses to `✓ READY`. All cards are 12 dp apart.
-4. **Settings**: °C/°F, player time remaining/total, the earbuds picture card (two rows of two buttons).
+4. **Settings**: language (`AUTO` = the phone's language, `EN`, `УКР`, `РУС`; `Lang.wrap` gives the activity and every widget render the picked locale, strings in `values`, `values-uk`, `values-ru`), °C/°F, player time remaining/total, the earbuds picture card (two rows of two buttons).
 5. **Updates** (release builds): version, then the status line (`✓ UP TO DATE`, never an empty line), then the last check time.
 6. **Diagnostics** (live state) at the bottom, collapsed.
 7. Footer: `Weather data by Open-Meteo.com` (licence requirement), fonts note.

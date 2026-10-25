@@ -67,7 +67,8 @@ class BudsWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun render(ctx: Context, w: Float, h: Float, b: Buds): RemoteViews {
+    private fun render(base: Context, w: Float, h: Float, b: Buds): RemoteViews {
+        val ctx = Lang.wrap(base)
         val density = ctx.resources.displayMetrics.density
         val pad = Tile.pad(h).coerceAtLeast(10f)
         val rv = RemoteViews(ctx.packageName, R.layout.widget_buds)
@@ -173,6 +174,7 @@ class BudsWidgetProvider : AppWidgetProvider() {
             }
         }
         rv.setOnClickPendingIntent(R.id.zone, tapIntent(ctx, b))
+        rv.setContentDescription(R.id.zone, ctx.getString(R.string.cd_open_bluetooth))
         return rv
     }
 

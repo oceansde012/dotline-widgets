@@ -143,6 +143,10 @@ class MainActivity : Activity() {
     /** true while the crash report screen replaces the normal UI (nothing else is initialised then) */
     private var crashShown = false
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(Lang.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val crash = DotlineApp.readCrash(this)
@@ -701,7 +705,7 @@ class MainActivity : Activity() {
         if (q.length < 2) return
         val token = ++searchToken
         showStatus(getString(R.string.wx_searching))
-        WeatherRepo.searchAsync(q) { hits ->
+        WeatherRepo.searchAsync(this, q) { hits ->
             runOnUiThread {
                 if (isDestroyed || token != searchToken) return@runOnUiThread
                 showResults(hits.take(5))
@@ -836,7 +840,7 @@ class MainActivity : Activity() {
         if (!Geocoder.isPresent()) {
             null
         } else {
-            val a = Geocoder(ctx, Locale.getDefault()).getFromLocation(lat, lon, 1)?.firstOrNull()
+            val a = Geocoder(ctx, Lang.locale(ctx)).getFromLocation(lat, lon, 1)?.firstOrNull()
             (a?.locality ?: a?.subAdminArea ?: a?.adminArea)?.takeIf { it.isNotBlank() }
         }
     } catch (e: Exception) {
@@ -982,7 +986,20 @@ class MainActivity : Activity() {
             setBackgroundResource(R.drawable.nd_tile_r22)
             setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(16))
         }
-        card.addView(ui.label(getString(R.string.set_temp), Nd.FG, 12f))
+        card.addView(ui.label(getString(R.string.set_language), Nd.FG, 12f))
+        card.addView(
+            ui.segmented(
+                listOf(getString(R.string.lang_auto), "EN", "УКР", "РУС"),
+                Lang.CODES.indexOf(Lang.pref(this)).coerceAtLeast(0),
+            ) { i ->
+                Lang.setPref(this, Lang.CODES[i])
+                MediaTracker.render(this, forceFull = true)
+                BudsWidgetProvider.updateAll(this)
+                recreate()   // onResume re-renders the rest
+            },
+            ui.lp(top = 10),
+        )
+        card.addView(ui.label(getString(R.string.set_temp), Nd.FG, 12f), ui.lp(top = 20))
         card.addView(
             ui.segmented(
                 listOf(getString(R.string.opt_celsius), getString(R.string.opt_fahrenheit)),

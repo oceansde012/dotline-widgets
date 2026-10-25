@@ -170,16 +170,17 @@ object WeatherRepo {
 
     // --- geocoding ---------------------------------------------------------------------------
 
-    fun searchAsync(query: String, result: (List<City>) -> Unit) {
-        io.execute { result(search(query)) }
+    fun searchAsync(ctx: Context, query: String, result: (List<City>) -> Unit) {
+        val app = ctx.applicationContext
+        io.execute { result(search(app, query)) }
     }
 
-    /** blocking Open-Meteo geocoding search (up to 8 hits, in the system language); empty on any failure */
-    fun search(query: String): List<City> {
+    /** blocking Open-Meteo geocoding search (up to 8 hits, in the app language); empty on any failure */
+    fun search(ctx: Context, query: String): List<City> {
         val q = query.trim()
         if (q.isEmpty()) return emptyList()
         return try {
-            val lang = if (Locale.getDefault().language == "uk") "uk" else "en"
+            val lang = Lang.apiCode(ctx)
             val url = "https://geocoding-api.open-meteo.com/v1/search?name=" + URLEncoder.encode(q, "UTF-8") +
                 "&count=8&language=$lang&format=json"
             val arr = JSONObject(get(url)).optJSONArray("results") ?: return emptyList()
