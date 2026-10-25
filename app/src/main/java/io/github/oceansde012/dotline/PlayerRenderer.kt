@@ -50,13 +50,14 @@ object PlayerRenderer {
         rv.setTextViewTextSize(R.id.title, DIP, g.titleSize)
         rv.setTextViewTextSize(R.id.artist, DIP, if (idle) g.artistSize - 1f else g.artistSize)
         rv.setTextViewTextSize(R.id.source, DIP, g.sourceSize)
+        val lc = Lang.wrap(ctx)
         if (t == null) {
             val blockH = g.titleSize * 1.25f + 3f + (g.artistSize - 1f) * 1.25f
             rv.place(R.id.text_block, g.colX, (g.h - blockH) / 2f, g.idleTextW, blockH)
             rv.setViewVisibility(R.id.source, View.GONE)
-            rv.setTextViewText(R.id.title, ctx.getString(if (access) R.string.not_playing else R.string.player_allow))
+            rv.setTextViewText(R.id.title, lc.getString(if (access) R.string.not_playing else R.string.player_allow))
             rv.setTextColor(R.id.title, if (access) Nd.DIM else Nd.FG)
-            rv.setTextViewText(R.id.artist, ctx.getString(if (access) R.string.player_idle_hint else R.string.player_allow_hint))
+            rv.setTextViewText(R.id.artist, lc.getString(if (access) R.string.player_idle_hint else R.string.player_allow_hint))
             rv.setTextColor(R.id.artist, if (access) Nd.FAINT else Nd.DIM)
             rv.setViewVisibility(R.id.artist, View.VISIBLE)
         } else {
@@ -96,6 +97,10 @@ object PlayerRenderer {
         rv.setOnClickPendingIntent(R.id.zone_prev, command(ctx, PlayerWidgetProvider.ACTION_PREV, REQ_PREV))
         rv.setOnClickPendingIntent(R.id.zone_play, command(ctx, PlayerWidgetProvider.ACTION_PLAY_PAUSE, REQ_PLAY))
         rv.setOnClickPendingIntent(R.id.zone_next, command(ctx, PlayerWidgetProvider.ACTION_NEXT, REQ_NEXT))
+        rv.setContentDescription(R.id.zone_prev, lc.getString(R.string.cd_prev))
+        rv.setContentDescription(R.id.zone_play, lc.getString(R.string.cd_play_pause))
+        rv.setContentDescription(R.id.zone_next, lc.getString(R.string.cd_next))
+        rv.setContentDescription(R.id.zone_open, lc.getString(R.string.cd_open_player))
         rv.setOnClickPendingIntent(R.id.zone_open, if (!access && t == null) Taps.notificationAccess(ctx) else openPlayer(ctx, t))
         return rv
     }

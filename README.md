@@ -1,10 +1,10 @@
 ﻿# Dotline Widgets
 
-**Calm dot-matrix home screen widgets for Android. Six native widgets, no account, no ads, no analytics.**
+**Nothing-style dot-matrix home screen widgets for any Android phone. Six native widgets, no account, no ads, no analytics. English, Ukrainian and Russian.**
 
 [Українська версія](README.uk.md)
 
-> Inspired by Nothing OS design; not affiliated with Nothing Technology Limited.
+> A Nothing-style widget set: it takes the dot-matrix look as inspiration, but it is an independent project, **not made by or affiliated with Nothing Technology Limited**. "Nothing" and "Nothing OS" belong to their owners. No Nothing code, fonts, logos or artwork are included: the dot glyphs and widget art are drawn by this app, the label font is open-source IBM Plex Mono. (The Buds widget can show the earbud picture from the Nothing X app if you have it installed on your phone; nothing from it is bundled.)
 
 ## Screenshots
 

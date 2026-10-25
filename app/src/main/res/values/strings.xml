@@ -106,6 +106,8 @@
     <string name="demo_title">Dot Matrix</string>
     <string name="demo_artist">Preview track</string>
 
+    <string name="set_language">LANGUAGE</string>
+    <string name="lang_auto">AUTO</string>
     <string name="set_temp">TEMPERATURE</string>
     <string name="set_player_time">PLAYER TIME</string>
     <string name="opt_celsius">°C</string>

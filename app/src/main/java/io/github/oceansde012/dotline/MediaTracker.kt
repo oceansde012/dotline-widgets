@@ -315,7 +315,7 @@ object MediaTracker {
         val md = c.metadata
         val ps = c.playbackState
         val pkg = c.packageName
-        val appName = appLabelOrNull(ctx, pkg) ?: ctx.getString(R.string.unknown_title)
+        val appName = appLabelOrNull(ctx, pkg) ?: Lang.wrap(ctx).getString(R.string.unknown_title)
         val n = notifs[pkg]
         val title = nonBlank(md?.getString(MediaMetadata.METADATA_KEY_TITLE))
             ?: nonBlank(md?.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE))

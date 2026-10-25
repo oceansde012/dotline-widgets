@@ -108,6 +108,7 @@ class ClockWidgetProvider : AppWidgetProvider() {
         rv.size(R.id.dot, dot, dot)
         rv.margins(R.id.dot, top = pad, end = pad)
         rv.setOnClickPendingIntent(R.id.zone, Taps.clock(ctx))
+        rv.setContentDescription(R.id.zone, Lang.wrap(ctx).getString(R.string.cd_open_clock))
         return rv
     }
 }

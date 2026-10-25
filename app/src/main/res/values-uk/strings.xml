@@ -4,6 +4,18 @@
     <string name="alarm_fmt">БУДИЛЬНИК %s</string>
     <string name="head_alarm">Будильник</string>
     <string name="head_no_alarm">Без будильника</string>
+    <string name="cd_open_calendar">Відкрити календар</string>
+    <string name="cd_open_alarms">Відкрити будильники</string>
+    <string name="tap_play">Натисни play, щоб почати</string>
+    <string name="unknown_title">Невідомо</string>
+    <string name="cd_prev">Назад</string>
+    <string name="cd_play_pause">Грати або пауза</string>
+    <string name="cd_next">Далі</string>
+    <string name="cd_open_player">Відкрити плеєр</string>
+    <string name="cd_open_clock">Відкрити годинник</string>
+    <string name="cd_open_weather">Відкрити погоду</string>
+    <string name="cd_open_battery">Відкрити витрату батареї</string>
+    <string name="cd_open_bluetooth">Відкрити налаштування Bluetooth</string>
     <string name="player_widget_desc">Обкладинка, трек, прогрес і керування поточним плеєром</string>
     <string name="clock_widget_desc">Точковий годинник з однією червоною крапкою</string>
     <string name="not_playing">Нічого не грає</string>
@@ -83,11 +95,14 @@
     <string name="demo_title">Dot Matrix</string>
     <string name="demo_artist">Приклад треку</string>
 
+    <string name="set_language">МОВА</string>
+    <string name="lang_auto">АВТО</string>
     <string name="set_temp">ТЕМПЕРАТУРА</string>
     <string name="set_player_time">ЧАС У ПЛЕЄРІ</string>
     <string name="opt_remaining">ЗАЛИШИЛОСЬ</string>
     <string name="opt_total">ВСЬОГО</string>
     <string name="set_clock_note">Формат годинника (12 / 24 год) береться із системи.</string>
+    <string name="footer_weather">Дані про погоду: Open-Meteo.com</string>
     <string name="footer_fonts">IBM Plex Mono: ліцензія SIL OFL 1.1. Точкові цифри малює сам застосунок.</string>
 
     <string name="sec_updates">ОНОВЛЕННЯ</string>

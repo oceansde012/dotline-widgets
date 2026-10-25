@@ -202,7 +202,8 @@ class PowerWidgetProvider : AppWidgetProvider() {
     }
 
     /** [live]: false for the gallery / picker preview, which must not freeze at a dim phase of the pulse */
-    private fun render(ctx: Context, w: Float, h: Float, s: State, live: Boolean = true): RemoteViews {
+    private fun render(base: Context, w: Float, h: Float, s: State, live: Boolean = true): RemoteViews {
+        val ctx = Lang.wrap(base)
         val density = ctx.resources.displayMetrics.density
         val pad = Tile.pad(h).coerceAtLeast(12f)
         val rv = RemoteViews(ctx.packageName, R.layout.widget_power)
@@ -252,6 +253,7 @@ class PowerWidgetProvider : AppWidgetProvider() {
         rv.margins(R.id.status, start = x0, top = top + hc - st.hDp)
 
         rv.setOnClickPendingIntent(R.id.zone, Taps.battery(ctx))
+        rv.setContentDescription(R.id.zone, ctx.getString(R.string.cd_open_battery))
         return rv
     }
 

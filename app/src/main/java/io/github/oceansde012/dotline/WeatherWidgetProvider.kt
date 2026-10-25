@@ -5,12 +5,9 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.os.Bundle
-import android.text.format.DateFormat
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
-import java.util.Date
-import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -69,14 +66,16 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun render(ctx: Context, w: Float, h: Float): RemoteViews {
+    private fun render(base: Context, w: Float, h: Float): RemoteViews {
+        val ctx = Lang.wrap(base)
         val pad = Tile.pad(h)
         val density = ctx.resources.displayMetrics.density
         val rv = RemoteViews(ctx.packageName, R.layout.widget_weather)
         Tile.apply(rv, R.id.tile, R.id.zone, h)
         rv.setOnClickPendingIntent(R.id.zone, Taps.app(ctx, REQ_OPEN, SECTION_WEATHER))
+        rv.setContentDescription(R.id.zone, ctx.getString(R.string.cd_open_weather))
 
-        val loc = Locale.getDefault()
+        val loc = Lang.locale(ctx)
         val wx = if (WeatherRepo.hasLocation(ctx)) WeatherRepo.cached(ctx) else null
         val now = System.currentTimeMillis()
         val stale = wx != null && now - wx.fetchedAt > WeatherRepo.STALE_MS
@@ -100,8 +99,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
                 subText = WeatherRepo.locationName(ctx).uppercase(loc)
             }
             stale -> {
-                val pattern = if (DateFormat.is24HourFormat(ctx)) "HH:mm" else "h:mm a"
-                labelText = ctx.getString(R.string.wx_updated, DateFormat.format(pattern, Date(wx.fetchedAt)).toString()).uppercase(loc)
+                labelText = ctx.getString(R.string.wx_updated, Lang.clock(ctx, wx.fetchedAt)).uppercase(loc)
                 labelColor = Nd.FAINT
                 subText = ctx.getString(R.string.wx_hi_lo, deg(ctx, wx.hi), deg(ctx, wx.lo))
             }

@@ -13,14 +13,12 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.os.Build
 import android.os.Bundle
-import android.text.format.DateFormat
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 import kotlin.math.ceil
 
 /**
@@ -102,7 +100,8 @@ class HeadWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun render(ctx: Context, w: Float, h: Float): RemoteViews {
+    private fun render(base: Context, w: Float, h: Float): RemoteViews {
+        val ctx = Lang.wrap(base)
         val rv = RemoteViews(ctx.packageName, R.layout.widget_head)
         val density = ctx.resources.displayMetrics.density
         val pad = Tile.pad(h).coerceAtLeast(12f)
@@ -120,9 +119,9 @@ class HeadWidgetProvider : AppWidgetProvider() {
         rv.margins(R.id.day, start = pad + 2f, top = top)
 
         // weekday over month, beside the number, same band
-        val loc = Locale.getDefault()
-        val weekday = SimpleDateFormat("EEE", loc).format(now).uppercase(loc)
-        val month = SimpleDateFormat("LLL", loc).format(now).uppercase(loc)
+        val loc = Lang.locale(ctx)
+        val weekday = SimpleDateFormat("EEE", loc).format(now).trimEnd('.').uppercase(loc)
+        val month = SimpleDateFormat("LLL", loc).format(now).trimEnd('.').uppercase(loc)
         val colX = pad + 2f + num.wDp + 12f
         val colW = (w * 0.26f).coerceAtLeast(60f)
         val size = (0.21f * h).coerceIn(11f, 14f)
@@ -173,6 +172,8 @@ class HeadWidgetProvider : AppWidgetProvider() {
         }
         rv.setOnClickPendingIntent(R.id.zone_date, Taps.calendar(ctx))
         rv.setOnClickPendingIntent(R.id.zone_alarm, Taps.alarms(ctx))
+        rv.setContentDescription(R.id.zone_date, ctx.getString(R.string.cd_open_calendar))
+        rv.setContentDescription(R.id.zone_alarm, ctx.getString(R.string.cd_open_alarms))
         return rv
     }
 
@@ -207,13 +208,12 @@ class HeadWidgetProvider : AppWidgetProvider() {
 
     /** (weekday or null when the alarm is today, `07:30`) */
     private fun alarmParts(ctx: Context, at: Long): Pair<String?, String> {
-        val pattern = if (DateFormat.is24HourFormat(ctx)) "HH:mm" else "h:mm a"
-        val time = DateFormat.format(pattern, Date(at)).toString()
+        val time = Lang.clock(ctx, at)
         val now = Calendar.getInstance()
         val then = Calendar.getInstance().apply { timeInMillis = at }
         val today = now.get(Calendar.YEAR) == then.get(Calendar.YEAR) &&
             now.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
-        val day = if (today) null else SimpleDateFormat("EEE", Locale.getDefault()).format(Date(at)).uppercase()
+        val day = if (today) null else SimpleDateFormat("EEE", Lang.locale(ctx)).format(Date(at)).trimEnd('.').uppercase(Lang.locale(ctx))
         return day to time
     }
 }

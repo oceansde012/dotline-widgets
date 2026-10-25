@@ -290,7 +290,7 @@ object Updater {
         val open = Intent(ctx, MainActivity::class.java)
             .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             .putExtra(MainActivity.EXTRA_CONFIRM, confirm)
-        notify(ctx, ctx.getString(R.string.upd_notif_title, versionOf(readyCode(ctx))), open)
+        notify(ctx, Lang.wrap(ctx).getString(R.string.upd_notif_title, versionOf(readyCode(ctx))), open)
     }
 
     fun onInstallResult(ctx: Context, status: Int, message: String?) {
@@ -313,10 +313,11 @@ object Updater {
         val open = Intent(ctx, MainActivity::class.java)
             .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             .putExtra(MainActivity.EXTRA_INSTALL, true)
-        notify(ctx, ctx.getString(R.string.upd_notif_title, versionOf(code)), open)
+        notify(ctx, Lang.wrap(ctx).getString(R.string.upd_notif_title, versionOf(code)), open)
     }
 
-    private fun notify(ctx: Context, title: String, open: Intent) {
+    private fun notify(base: Context, title: String, open: Intent) {
+        val ctx = Lang.wrap(base)
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
         if (!nm.areNotificationsEnabled()) return
         nm.createNotificationChannel(NotificationChannel(CHANNEL, ctx.getString(R.string.upd_channel), NotificationManager.IMPORTANCE_DEFAULT))
