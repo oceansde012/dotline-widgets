@@ -4,6 +4,8 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- App screen redesigned: widgets first, setup collapses to one `ALL SET` row, one font family, compact add buttons, even spacing, diagnostics at the bottom; the update card always shows a status.
+- Weather: on the small 2x2 widget a long city such as Kamianets-Podilskyi breaks after the hyphen instead of in the middle of a word.
 - Power: while the phone charges, the last lit dot of the bar is red and slowly breathes (screen on only).
 - Weather: the city is shown on the small 2x2 widget too, to the right of the icon (long names wrap after a hyphen).
 - Player: bolder controls, drawn as solid dot shapes (play, pause, previous, next) instead of thin outlines.

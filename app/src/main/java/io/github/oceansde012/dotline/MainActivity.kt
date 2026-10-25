@@ -71,6 +71,13 @@ class MainActivity : Activity() {
     private lateinit var notifCard: Card
     private lateinit var wxCard: Card
     private lateinit var btCard: Card
+    private lateinit var setupBox: LinearLayout
+    private lateinit var setupDot: View
+    private lateinit var setupSummary: TextView
+    private lateinit var setupArrow: TextView
+    private var setupOpen = true
+    private var setupInit = false
+    private var setupDone = false
     private lateinit var btButton: TextView
     private lateinit var locButton: TextView
     private lateinit var notifStatus: TextView
@@ -82,7 +89,7 @@ class MainActivity : Activity() {
     // diagnostics card
     private lateinit var diagBody: TextView
     private lateinit var diagCard: LinearLayout
-    private var diagOpen = true
+    private var diagOpen = false
     private val diagTick = object : Runnable {
         override fun run() {
             if (diagOpen) diagBody.text = Diagnostics.report(this@MainActivity)
@@ -149,11 +156,11 @@ class MainActivity : Activity() {
         scroll = requireViewById(R.id.scroll)
         content = requireViewById(R.id.content)
         buildHeader()
-        buildDiagnostics()
-        buildSetup()
         buildGallery()
+        buildSetup()
         buildSettings()
         if (BuildConfig.UPDATES_ENABLED) buildUpdates()
+        buildDiagnostics()
         buildFooter()
         // keep the first focus off the city field (it would scroll the page and pop the keyboard)
         content.isFocusable = true
@@ -280,7 +287,7 @@ class MainActivity : Activity() {
         section(R.string.sec_diag)
         diagCard = ui.vertical().apply {
             setBackgroundResource(R.drawable.nd_tile_r22)
-            setPadding(ui.dp(16), ui.dp(8), ui.dp(16), ui.dp(16))
+            setPadding(ui.dp(16), ui.dp(8), ui.dp(16), ui.dp(if (diagOpen) 16 else 8))
         }
         val head = ui.horizontal().apply { minimumHeight = ui.dp(48) }
         val arrow = ui.label(if (diagOpen) "−" else "+", Nd.FG, 14f)
@@ -291,7 +298,7 @@ class MainActivity : Activity() {
             setTextIsSelectable(true)
             setLineSpacing(0f, 1.15f)
         }
-        val body = ui.vertical()
+        val body = ui.vertical().apply { visibility = if (diagOpen) View.VISIBLE else View.GONE }
         body.addView(diagBody, ui.lp())
         body.addView(ui.button(getString(R.string.btn_open_settings_notif), primary = true).apply {
             setOnClickListener { openAccessSettings() }
@@ -306,6 +313,7 @@ class MainActivity : Activity() {
         diagCard.addView(body, ui.lp())
         head.setOnClickListener {
             diagOpen = !diagOpen
+            diagCard.setPadding(ui.dp(16), ui.dp(8), ui.dp(16), ui.dp(if (diagOpen) 16 else 8))
             body.visibility = if (diagOpen) View.VISIBLE else View.GONE
             arrow.text = if (diagOpen) "−" else "+"
             if (diagOpen) diagBody.text = Diagnostics.report(this)
@@ -388,17 +396,33 @@ class MainActivity : Activity() {
         buildNotificationCard()
         buildWeatherCard()
         buildBluetoothCard()
-        // the order of the first-run walk: 1 notification access, 2 Bluetooth, 3 city
-        content.addView(notifCard.root, ui.lp(bottom = 12))
-        content.addView(btCard.root, ui.lp(bottom = 12))
-        content.addView(wxCard.root, ui.lp(bottom = 12))
-        val budsCard = ui.vertical().apply {
+        // one summary row: all done = collapsed `ALL SET`, otherwise open with the missing steps
+        val summary = ui.horizontal().apply {
+            minimumHeight = ui.dp(52)
             setBackgroundResource(R.drawable.nd_tile_r22)
-            setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(16))
+            setPadding(ui.dp(16), 0, ui.dp(16), 0)
+            isClickable = true
+            setOnClickListener { setSetupOpen(!setupOpen) }
         }
-        budsCard.addView(ui.label(getString(R.string.buds_picture_title), Nd.FG, 12f))
-        buildBudsPicture(budsCard)
-        content.addView(budsCard, ui.lp())
+        setupDot = View(this)
+        summary.addView(setupDot, ui.lp(w = ui.dp(10), h = ui.dp(10), end = 12))
+        setupSummary = ui.label("", Nd.FG, 12f)
+        summary.addView(setupSummary, ui.lp(w = 0, weight = 1f))
+        setupArrow = ui.label("+", Nd.FG, 14f)
+        summary.addView(setupArrow)
+        content.addView(summary, ui.lp(bottom = 12))
+        // the order of the first-run walk: notification access, Bluetooth, city (auto-updates join from buildUpdates)
+        setupBox = ui.vertical()
+        setupBox.addView(notifCard.root, ui.lp(bottom = 12))
+        setupBox.addView(btCard.root, ui.lp(bottom = 12))
+        setupBox.addView(wxCard.root, ui.lp(bottom = 12))
+        content.addView(setupBox, ui.lp())
+    }
+
+    private fun setSetupOpen(on: Boolean) {
+        setupOpen = on
+        setupBox.visibility = if (on) View.VISIBLE else View.GONE
+        setupArrow.text = if (on) "−" else "+"
     }
 
     private fun buildNotificationCard() {
@@ -423,7 +447,8 @@ class MainActivity : Activity() {
             hint = getString(R.string.wx_search_hint)
             setHintTextColor(Nd.DIM)
             setTextColor(Nd.FG)
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+            typeface = ui.mono
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
             setSingleLine()
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
             imeOptions = EditorInfo.IME_ACTION_SEARCH
@@ -452,7 +477,7 @@ class MainActivity : Activity() {
         b.addView(wxStatus, ui.lp(top = 8, start = 4))
         wxResults = ui.vertical()
         b.addView(wxResults, ui.lp(top = 4))
-        locButton = ui.button(getString(R.string.btn_use_location), primary = true).apply {
+        locButton = ui.button(getString(R.string.btn_use_location), primary = false).apply {
             setOnClickListener { useMyLocation() }
         }
         b.addView(locButton, ui.lp(top = 12))
@@ -483,16 +508,18 @@ class MainActivity : Activity() {
         }
         row.addView(budsResetBtn, ui.lp(w = Ui.WRAP))
         b.addView(row, ui.lp(top = 8))
-        b.addView(ui.button(getString(R.string.btn_from_nothing_x), primary = false).apply {
+        val row2 = ui.horizontal()
+        row2.addView(ui.button(getString(R.string.btn_from_nothing_x), primary = false).apply {
             setOnClickListener { loadNothingXGrid() }
-        }, ui.lp(top = 8))
+        }, ui.lp(w = 0, weight = 1f, end = 8))
         budsColorBtn = ui.button("", primary = false).apply {
             setOnClickListener {
                 BudsRepo.setNxColor(this@MainActivity, if (BudsRepo.nxColor(this@MainActivity) == "black") "white" else "black")
                 refreshAfterBuds()
             }
         }
-        b.addView(budsColorBtn, ui.lp(top = 8))
+        row2.addView(budsColorBtn, ui.lp(w = 0, weight = 1f))
+        b.addView(row2, ui.lp(top = 8))
         b.addView(ui.body(getString(R.string.buds_picture_note), Nd.DIM, 12f), ui.lp(top = 6, start = 2))
         nxGrid = ui.vertical()
         b.addView(nxGrid, ui.lp(top = 8))
@@ -579,12 +606,21 @@ class MainActivity : Activity() {
         notifCard.update(access, isCurrent = true)
         btCard.update(bt, isCurrent = access)
         wxCard.update(hasCity, isCurrent = access && bt)
-        notifCard.setTitle("1 · " + getString(R.string.notif_title))
-        btCard.setTitle("2 · " + getString(R.string.bt_title))
+        notifCard.setTitle(getString(R.string.notif_title))
+        btCard.setTitle(getString(R.string.bt_title))
         wxCard.setTitle(
-            "3 · " + if (hasCity) getString(R.string.wx_title_city, WeatherRepo.locationName(this).uppercase())
+            if (hasCity) getString(R.string.wx_title_city, WeatherRepo.locationName(this).uppercase())
             else getString(R.string.wx_title)
         )
+        val installOk = BuildConfig.UPDATES_ENABLED && Updater.canInstall(this)
+        val total = if (BuildConfig.UPDATES_ENABLED) 4 else 3
+        val ready = listOf(access, bt, hasCity, installOk).count { it }
+        val all = ready == total
+        if (!setupInit || all != setupDone) setSetupOpen(!all)
+        setupInit = true
+        setupDone = all
+        setupSummary.text = if (all) getString(R.string.setup_all_done) else getString(R.string.setup_progress, ready, total)
+        setupDot.setBackgroundResource(if (all) R.drawable.nd_dot_fg else R.drawable.nd_dot)
         notifStatus.text = getString(if (access) R.string.notif_status_yes else R.string.notif_status_no)
         notifStatus.setTextColor(if (access) Nd.FG else Nd.ACCENT)
         val b = BudsRepo.current(this)
@@ -598,9 +634,10 @@ class MainActivity : Activity() {
     }
 
     private fun focusCard(c: Card) {
+        setSetupOpen(true)
         c.open(true)
         afterLayout {
-            scroll.smoothScrollTo(0, (c.root.top - ui.dp(16)).coerceAtLeast(0))
+            scroll.smoothScrollTo(0, (setupBox.top + c.root.top - ui.dp(16)).coerceAtLeast(0))
         }
     }
 
@@ -880,16 +917,16 @@ class MainActivity : Activity() {
         texts.addView(ui.label(getString(titleRes), Nd.FG, 12f))
         texts.addView(ui.body(getString(descRes), Nd.DIM, 12f), ui.lp(top = 2))
         head.addView(texts, ui.lp(w = 0, weight = 1f, end = 12))
-        head.addView(ui.button(getString(R.string.btn_add_home), primary = false).apply {
+        head.addView(ui.smallButton(getString(R.string.btn_add_home)).apply {
             setOnClickListener { pin(provider) }
         }, ui.lp(w = Ui.WRAP))
-        content.addView(head, ui.lp(top = 8))
+        content.addView(head, ui.lp(top = 14))
 
         val frame = FrameLayout(this).apply {
             isClickable = true
             setOnClickListener { pin(provider) }
         }
-        content.addView(frame, ui.lp(w = ui.dp(w.toInt()), h = ui.dp(h.toInt()), top = 10, bottom = 20))
+        content.addView(frame, ui.lp(w = ui.dp(w.toInt()), h = ui.dp(h.toInt()), top = 10, bottom = 12).apply { gravity = Gravity.CENTER_HORIZONTAL })
         val p = Preview(frame, w, h, build)
         previews.add(p)
         return p
@@ -969,6 +1006,13 @@ class MainActivity : Activity() {
         )
         card.addView(ui.body(getString(R.string.set_clock_note), Nd.DIM, 12f), ui.lp(top = 16))
         content.addView(card, ui.lp())
+        val budsCard = ui.vertical().apply {
+            setBackgroundResource(R.drawable.nd_tile_r22)
+            setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(16))
+        }
+        budsCard.addView(ui.label(getString(R.string.buds_picture_title), Nd.FG, 12f))
+        buildBudsPicture(budsCard)
+        content.addView(budsCard, ui.lp(top = 12))
     }
 
     // --- updates -----------------------------------------------------------------------------
@@ -995,8 +1039,7 @@ class MainActivity : Activity() {
             }
         }, ui.lp(top = 12))
         // after the last setup card
-        val idx = content.indexOfChild(btCard.root)
-        content.addView(installCard.root, idx + 1, ui.lp(top = 12))
+        setupBox.addView(installCard.root, setupBox.indexOfChild(btCard.root) + 1, ui.lp(bottom = 12))
 
         section(R.string.sec_updates)
         val card = ui.vertical().apply {
@@ -1004,11 +1047,11 @@ class MainActivity : Activity() {
             setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(16))
         }
         updVersion = ui.label("", Nd.FG, 12f)
-        updLast = ui.label("")
+        updLast = ui.label("", Nd.DIM, 11f)
         updStatus = ui.label("", Nd.FG, 12f)
         card.addView(updVersion)
+        card.addView(updStatus, ui.lp(top = 8))
         card.addView(updLast, ui.lp(top = 6))
-        card.addView(updStatus, ui.lp(top = 14))
         updInstall = ui.button(getString(R.string.btn_install), primary = true).apply {
             setOnClickListener { Updater.install(this@MainActivity) }
         }
@@ -1071,6 +1114,7 @@ class MainActivity : Activity() {
             Updater.State.IDLE -> ""
         }
         updStatus.setTextColor(if (s == Updater.State.ERROR) Nd.ACCENT else Nd.FG)
+        updStatus.visibility = if (updStatus.text.isEmpty()) View.GONE else View.VISIBLE
         updInstall.visibility = if (s == Updater.State.READY && ready > 0) View.VISIBLE else View.GONE
         val working = s == Updater.State.CHECKING || s == Updater.State.DOWNLOADING || s == Updater.State.INSTALLING
         updCheck.isEnabled = !working

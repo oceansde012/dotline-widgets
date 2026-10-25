@@ -70,6 +70,8 @@
     <string name="sec_widgets">WIDGETS</string>
     <string name="sec_settings">SETTINGS</string>
     <string name="status_ready">✓ READY</string>
+    <string name="setup_all_done">✓ ALL SET</string>
+    <string name="setup_progress">%1$d OF %2$d READY</string>
 
     <string name="notif_title">NOTIFICATION ACCESS</string>
     <string name="notif_body">The player widget needs it to see what is playing. Notifications are never read or stored.</string>
@@ -120,7 +122,7 @@
     <string name="upd_version">VERSION %s</string>
     <string name="upd_last_check">LAST CHECK %s</string>
     <string name="upd_never">NEVER CHECKED</string>
-    <string name="upd_up_to_date">UP TO DATE</string>
+    <string name="upd_up_to_date">✓ UP TO DATE</string>
     <string name="upd_checking">CHECKING…</string>
     <string name="upd_downloading">DOWNLOADING… %d%%</string>
     <string name="upd_ready">READY TO INSTALL %s</string>
