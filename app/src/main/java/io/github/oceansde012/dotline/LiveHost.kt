@@ -20,6 +20,7 @@ object LiveHost {
     /** system broadcasts, sent by the framework itself */
     private val SYSTEM = listOf(
         Intent.ACTION_USER_PRESENT,
+        Intent.ACTION_SCREEN_ON,
         Intent.ACTION_BATTERY_CHANGED,
         Intent.ACTION_POWER_CONNECTED,
         Intent.ACTION_POWER_DISCONNECTED,
@@ -72,6 +73,7 @@ object LiveHost {
                     PowerWidgetProvider.refresh(context)
                     Ticker.tick(context)
                 }
+                Intent.ACTION_SCREEN_ON -> PowerWidgetProvider.resumeRun(context)   // the red dot runs only with the screen on
                 // minute boundary (also covers the date rollover) and clock / zone changes
                 Intent.ACTION_TIME_TICK, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED -> Ticker.tick(context)
                 // sticky: delivered once on registration, then on every charge-state tick

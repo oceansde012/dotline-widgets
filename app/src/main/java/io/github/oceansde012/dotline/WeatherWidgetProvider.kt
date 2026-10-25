@@ -46,6 +46,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         const val SECTION_WEATHER = "weather"
         private const val REQ_OPEN = 120
         private const val RAIN_SOON_MS = 60 * 60 * 1000L
+        private const val CITY_WIDE_W = 200f   // from this width the city sits on one line to the right of the icon
 
         /** the same face the home screen gets, for a [widthDp] x [heightDp] tile (gallery, generated picker preview) */
         fun buildPreview(ctx: Context, widthDp: Float, heightDp: Float): RemoteViews =
@@ -80,6 +81,8 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         val now = System.currentTimeMillis()
         val stale = wx != null && now - wx.fetchedAt > WeatherRepo.STALE_MS
         val rainSoon = wx != null && !stale && wx.rainAt >= 0 && now <= wx.rainAt + RAIN_SOON_MS
+        val cityName = if (wx != null) WeatherRepo.locationName(ctx).uppercase(loc) else ""
+        val cityNarrow = cityName.isNotBlank() && w < CITY_WIDE_W   // 2x2: the city squeezes in beside a smaller icon
 
         // texts first: the bottom block height depends on their rendered size
         val labelText: String
@@ -136,7 +139,7 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         rv.setViewVisibility(R.id.dot, if (rainSoon) View.VISIBLE else View.GONE)
         rv.setViewVisibility(R.id.city, View.GONE)
 
-        val iconDp = (0.24f * h).coerceIn(26f, 46f)
+        val iconDp = ((if (cityNarrow) 0.2f else 0.24f) * h).coerceIn(26f, 46f)
         val tempBox = (blockTop - gap) - (pad + iconDp + gap)
 
         fun icon(kind: WeatherArt.Kind, color: Int, dp: Float) {
@@ -163,11 +166,16 @@ class WeatherWidgetProvider : AppWidgetProvider() {
         rv.setContentDescription(R.id.temp, tempText)
         rv.margins(R.id.temp, start = pad, top = pad + iconDp + gap + (tempBox - art.hDp) / 2f)
 
-        if (w >= 200f) {   // city: sits between the icon and the accent dot
-            val name = WeatherRepo.locationName(ctx).uppercase(loc)
-            if (name.isNotBlank()) {
+        if (cityName.isNotBlank()) {
+            if (cityNarrow) {
+                // two lines (breaks after a hyphen too) right of the icon, clear of the rain dot
+                val cx = pad + iconDp + 8f
+                val right = w - pad - (if (rainSoon) dot + 6f else 0f)
+                val c = rv.label(ctx, R.id.city, cityName, label - 1f, Nd.DIM, (right - cx).coerceAtLeast(30f), maxLines = 2, minSizeDp = 8f)
+                rv.margins(R.id.city, start = right - c.wDp, top = pad + (iconDp - c.hDp) / 2f)
+            } else {   // city: sits between the icon and the accent dot
                 val cx = pad + iconDp + 10f
-                val c = rv.label(ctx, R.id.city, name, label - 1f, Nd.DIM, (w - cx - pad - dot - 8f).coerceAtLeast(30f), minSizeDp = 9f)
+                val c = rv.label(ctx, R.id.city, cityName, label - 1f, Nd.DIM, (w - cx - pad - dot - 8f).coerceAtLeast(30f), minSizeDp = 9f)
                 rv.margins(R.id.city, start = w - pad - dot - 8f - c.wDp, top = pad + (iconDp - c.hDp) / 2f)
             }
         }
