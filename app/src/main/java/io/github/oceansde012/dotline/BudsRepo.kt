@@ -109,6 +109,8 @@ object BudsRepo {
     private class Level(val percent: Int, val at: Long)
     private val broadcastLevel = ConcurrentHashMap<String, Level>()
     private val tried = HashSet<String>()
+    private val failedAt = ConcurrentHashMap<String, Long>()   // picture resolve that found nothing: retried after RETRY_MS
+    private const val RETRY_MS = 2 * 60_000L
 
     // --- permission / state ----------------------------------------------------------------------
 
@@ -471,6 +473,8 @@ object BudsRepo {
     private fun resolvePictureAsync(a: Context, b: Buds) {
         if (!b.connected || b.address.isEmpty()) return
         val h = hash(b.address)
+        val failed = failedAt[h]
+        if (failed != null && android.os.SystemClock.elapsedRealtime() - failed < RETRY_MS) return
         synchronized(tried) { if (!tried.add(h)) return }
         io.execute {
             try {
@@ -478,8 +482,15 @@ object BudsRepo {
             } catch (e: Throwable) {
                 resolveNotes = "error: ${e.javaClass.simpleName}"
                 Log.w(TAG, "picture resolve failed", e)
+                resolveFailed(h)
             }
         }
+    }
+
+    /** nothing found this time (the sources are often not ready right after an update or a reconnect): try again later */
+    private fun resolveFailed(h: String) {
+        failedAt[h] = android.os.SystemClock.elapsedRealtime()
+        synchronized(tried) { tried.remove(h) }
     }
 
     private fun resolve(a: Context, b: Buds, h: String) {
@@ -532,7 +543,8 @@ object BudsRepo {
             }
         }
         val sp = srcPref(a).edit()
-        if (src != null) sp.putString("src_$h", src) else { sp.remove("src_$h"); auto.delete() }
+        // a failed attempt must not wipe the picture that was found earlier
+        if (src != null) { sp.putString("src_$h", src); failedAt.remove(h) } else resolveFailed(h)
         sp.apply()
         notes.append(" | result=${src ?: "ILLUSTRATION"}")
         resolveNotes = notes.toString()
