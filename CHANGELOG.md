@@ -4,6 +4,7 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- Buds: a new drawn pair of earbuds (white tip, clear stem) is shown when the earbuds' own picture is not available, and the widget picker preview now looks like the real widget (picture, name, battery, case).
 - Languages: English, Ukrainian and Russian. The app follows the phone's language (anything else shows English); under SETTINGS → LANGUAGE you can pick one yourself, and widgets, weather city search and the update notification follow it.
 - App screen redesigned: widgets first, setup collapses to one `ALL SET` row, one font family, compact add buttons, even spacing, diagnostics at the bottom; the update card always shows a status.
 - Weather: on the small 2x2 widget a long city such as Kamianets-Podilskyi breaks after the hyphen instead of in the middle of a word.
