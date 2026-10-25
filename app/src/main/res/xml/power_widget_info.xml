@@ -11,4 +11,4 @@
     android:targetCellWidth="3"
     android:targetCellHeight="1"
     android:updatePeriodMillis="0"
-    android:widgetCategory="home_screen|keyguard" />
+    android:widgetCategory="home_screen" />
