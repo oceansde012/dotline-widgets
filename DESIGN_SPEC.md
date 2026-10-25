@@ -87,16 +87,14 @@ Keep the existing engine (session picking, 80ms debounce, screen-on tick, partia
 Per widget, at most one accent element, and it must *mean* something: Time = the dot; Player = progress head; Power = charging/low; Weather = rain soon; Buds = low battery; Head = none.
 
 ## 4. App screen (MainActivity redesign)
-Single scroll, black `#000`, same tokens.
+Single scroll, black `#000`, same tokens. One type family on the whole screen: Plex Mono for labels, buttons AND body text (the system sans is gone); dot-matrix only for the wordmark.
 1. Header: `DOTLINE` in the hero font, version in Label dim.
-2. **Setup checklist** cards (each a tile with status dot fg/accent + one action button):
-   - Notification access (player) → opens listener settings; hint about "Allow restricted settings" on Samsung with a button to App info.
-   - Weather location → city search field + results list, or "Use my location".
-   - Bluetooth (buds) → runtime permission.
-   Cards collapse to a single line `✓ READY` once granted.
-3. **Widgets gallery**: each widget rendered live (inflate the same RemoteViews into the activity via `RemoteViews.apply()`), with `ADD TO HOME` button (`requestPinAppWidget`).
-4. Settings: 24h/12h, °C/°F, show remaining vs total time in player.
-5. Footer: `Weather data by Open-Meteo.com` (licence requirement).
+2. **Widgets gallery** first (it is what the app is for): per widget a title + one-line description, a compact `ADD TO HOME` pill (`requestPinAppWidget`, 40 dp) and the live preview centred under it (the provider's real RemoteViews applied into the activity).
+3. **Setup**: one summary row (`✓ ALL SET`, or `2 OF 4 READY` with the red dot). All done = collapsed; anything missing = open. Inside, tile cards with status dot (fg / accent) and one action each: notification access (hint for "Allow restricted settings" on Samsung), Bluetooth, weather city (search field + `USE MY LOCATION`, both quiet chips), auto-updates (install permission). A done card collapses to `✓ READY`. All cards are 12 dp apart.
+4. **Settings**: °C/°F, player time remaining/total, the earbuds picture card (two rows of two buttons).
+5. **Updates** (release builds): version, then the status line (`✓ UP TO DATE`, never an empty line), then the last check time.
+6. **Diagnostics** (live state) at the bottom, collapsed.
+7. Footer: `Weather data by Open-Meteo.com` (licence requirement), fonts note.
 
 ## 5. Engineering rules
 - Plain framework + RemoteViews, no new dependencies (keep the app tiny). Add `INTERNET`, `BLUETOOTH_CONNECT`, `ACCESS_COARSE_LOCATION`.

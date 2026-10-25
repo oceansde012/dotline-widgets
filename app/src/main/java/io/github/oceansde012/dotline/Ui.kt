@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
 /**
  * Tiny view factory for the app screen (no AndroidX, no layout XML per card). Type roles as in
  * DESIGN_SPEC.md section 1: dot-matrix header (drawn by [DotText]), IBM Plex Mono labels / buttons,
- * system sans body.
+ * Plex Mono body (one family).
  */
 internal class Ui(private val ctx: Context) {
     private val density = ctx.resources.displayMetrics.density
@@ -47,27 +47,30 @@ internal class Ui(private val ctx: Context) {
     /** IBM Plex Mono label, 0.04 em tracking */
     fun label(s: CharSequence, color: Int = Nd.DIM, sp: Float = 11f): TextView = text(s, sp, color, mono, 0.04f)
 
-    /** system sans body text */
+    /** body text, also Plex Mono (one family on the whole screen); mono is wider, so sizes above 12 are trimmed, never below 11 */
     fun body(s: CharSequence, color: Int = Nd.DIM, sp: Float = 14f): TextView =
-        text(s, sp, color).apply { setLineSpacing(0f, 1.2f) }
+        text(s, minOf(sp, maxOf(12f, sp - 1.5f)), color, mono).apply { setLineSpacing(0f, 1.3f) }
 
     /** 48 dp button: primary = fg fill + black text (one per card), otherwise the #232326 chip */
-    fun button(s: CharSequence, primary: Boolean): Button = Button(ctx).apply {
+    fun button(s: CharSequence, primary: Boolean, heightDp: Int = 48, padDp: Int = 20, sp: Float = 12f): Button = Button(ctx).apply {
         text = s
         isAllCaps = false
         typeface = monoMedium
         letterSpacing = 0.04f
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
         setTextColor(if (primary) Color.BLACK else Nd.FG)
         setBackgroundResource(if (primary) R.drawable.nd_btn_primary else R.drawable.nd_button)
         stateListAnimator = null
-        minHeight = dp(48)
-        minimumHeight = dp(48)
+        minHeight = dp(heightDp)
+        minimumHeight = dp(heightDp)
         minWidth = 0
         minimumWidth = 0
         gravity = Gravity.CENTER
-        setPadding(dp(20), 0, dp(20), 0)
+        setPadding(dp(padDp), 0, dp(padDp), 0)
     }
+
+    /** compact 40 dp pill for list rows (add widget) */
+    fun smallButton(s: CharSequence): Button = button(s, primary = false, heightDp = 40, padDp = 16, sp = 11f)
 
     /** text-only secondary action: left aligned, 48 dp touch height, underlined */
     fun link(s: CharSequence, color: Int = Nd.FG): Button = Button(ctx).apply {
@@ -75,7 +78,8 @@ internal class Ui(private val ctx: Context) {
             it.setSpan(android.text.style.UnderlineSpan(), 0, it.length, 0)
         }
         isAllCaps = false
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        typeface = mono
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
         setTextColor(color)
         setBackgroundResource(R.drawable.nd_row)
         stateListAnimator = null

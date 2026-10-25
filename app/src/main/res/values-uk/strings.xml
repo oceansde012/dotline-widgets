@@ -47,6 +47,10 @@
     <string name="sec_widgets">ВІДЖЕТИ</string>
     <string name="sec_settings">ПАРАМЕТРИ</string>
     <string name="status_ready">✓ ГОТОВО</string>
+    <string name="state_expanded">розгорнуто</string>
+    <string name="state_collapsed">згорнуто</string>
+    <string name="setup_all_done">✓ УСЕ НАЛАШТОВАНО</string>
+    <string name="setup_progress">%1$d З %2$d ГОТОВО</string>
 
     <string name="notif_title">ДОСТУП ДО СПОВІЩЕНЬ</string>
     <string name="notif_body">Потрібен віджету плеєра, щоб бачити, що зараз грає. Сповіщення ніколи не читаються й не зберігаються.</string>
@@ -93,7 +97,7 @@
     <string name="upd_version">ВЕРСІЯ %s</string>
     <string name="upd_last_check">ОСТАННЯ ПЕРЕВІРКА %s</string>
     <string name="upd_never">ЩЕ НЕ ПЕРЕВІРЯЛОСЬ</string>
-    <string name="upd_up_to_date">ОСТАННЯ ВЕРСІЯ</string>
+    <string name="upd_up_to_date">✓ ОСТАННЯ ВЕРСІЯ</string>
     <string name="upd_checking">ПЕРЕВІРКА…</string>
     <string name="upd_downloading">ЗАВАНТАЖЕННЯ… %d%%</string>
     <string name="upd_ready">ГОТОВО ДО ВСТАНОВЛЕННЯ %s</string>

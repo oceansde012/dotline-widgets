@@ -100,8 +100,8 @@ object LabelText {
     /** no ellipsis and no word broken in the middle */
     private fun fits(text: String, paint: TextPaint, layout: StaticLayout, widthPx: Float, maxLines: Int): Boolean {
         for (i in 0 until layout.lineCount) if (layout.getEllipsisCount(i) > 0) return false
-        // a line may also break right after a hyphen, so "KAM'YANETS-PODILSKYI" is two words
-        if (maxLines > 1) for (word in text.split(' ').flatMap { it.split("(?<=-)".toRegex()) }) if (paint.measureText(word) > widthPx) return false
+        // a line may also break right after a hyphen, so "KAM'YANETS-PODILSKYI" is two words; callers put the break themselves (\n) because Android does not offer it
+        if (maxLines > 1) for (word in text.split(' ', '\n').flatMap { it.split("(?<=-)".toRegex()) }) if (paint.measureText(word) > widthPx) return false
         return true
     }
 }
