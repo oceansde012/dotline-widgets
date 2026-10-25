@@ -73,7 +73,7 @@ Keep the existing engine (session picking, 80ms debounce, screen-on tick, partia
   - charging: `CHARGING · FULL IN 1H 05M` from `BatteryManager.computeChargeTimeRemaining()`; if −1 → `CHARGING`.
   - full: `CHARGED`.
   - discharging: `ON BATTERY` (+ temperature `31°C` if > 40 °C, in accent).
-- Accent: charging = the last lit dot is red and breathes (separate overlay ImageView over an unlit bar dot; a tick every 120 ms sends only `setImageAlpha`, 20–100% on a 2.6 s cosine; only while the screen is on, stops on unplug / ≤ 15% / screen off; solid red otherwise); when ≤ 15% the hero is red. Never both.
+- Accent: charging = the last lit dot is red and breathes (separate overlay ImageView over an unlit bar dot; a tick every 200 ms sends only `setImageAlpha`, 20–100% on a 2.6 s cosine; only while the screen is on, stops on unplug / ≤ 15% / screen off / Battery Saver / animations removed, and then the dot is solid red); when ≤ 15% the hero is red. Never both.
 - Updates: `ACTION_BATTERY_CHANGED` runtime receiver in the listener-service process (it is long-lived), throttled to one render per 1% change or status change; plus `ACTION_POWER_CONNECTED/DISCONNECTED`.
 
 ### 2.6 Buds — 2×1 (`BudsWidgetProvider`, new)
