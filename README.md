@@ -2,29 +2,28 @@
 
 **Nothing-style dot-matrix home screen widgets for any Android phone. Six native widgets, no account, no ads, no analytics. English, Ukrainian and Russian.**
 
-[Українська версія](README.uk.md)
+[Українська версія](README.uk.md) · [Download the latest APK](../../releases/latest)
+
+<p align="center"><img src="docs/media/hero.png" alt="Dotline Widgets: Nothing-style dot-matrix widgets for any Android" width="880"></p>
 
 > A Nothing-style widget set: it takes the dot-matrix look as inspiration, but it is an independent project, **not made by or affiliated with Nothing Technology Limited**. "Nothing" and "Nothing OS" belong to their owners. No Nothing code, fonts, logos or artwork are included: the dot glyphs and widget art are drawn by this app, the label font is open-source IBM Plex Mono. (The Buds widget can show the earbud picture from the Nothing X app if you have it installed on your phone; nothing from it is bundled.)
 
-## Screenshots
+## In motion
 
-<p>
-  <img src="docs/media/widgets.png" alt="Head, Time, Buds, Power and Weather widgets on a Galaxy S25 Ultra" width="560">
-  <img src="docs/media/player.gif" alt="Player widget: the dot progress bar advances every second" width="320">
-</p>
-
-Real screenshots from a Galaxy S25 Ultra (One UI, Ukrainian locale). The player GIF is cropped to leave out the album cover.
+<p align="center"><img src="docs/media/demo.gif" alt="Dotline widgets: the dot-matrix wordmark, then the Head, Time, Weather and Power widgets" width="720"></p>
 
 ## Widgets
 
+Real screenshots from a Galaxy S25 Ultra (One UI). The album cover in the Player is replaced by a neutral square; the city is the author's own.
+
 | Widget | Size | What it does |
 |---|---|---|
-| **Head** | 5x1 | Date and next alarm in one line. Tap the date for the calendar, the alarm for the clock. |
-| **Time** | 3x2 | Big dot-matrix clock (native `TextClock`, so it never lags) with a single red dot. |
-| **Weather** | 2x2 | Dot-matrix icon, temperature, condition, high / low. A red dot appears when rain is likely soon. Shows how old the data is when it gets stale. |
-| **Player** | 5x2 | Cover, title, artist and controls of whatever is playing, with a **per-second dot progress bar** (28 dots, the current dot in red), elapsed and remaining time. Idle state resumes your last player. |
-| **Power** | 3x1 | Battery percent, 10-dot level bar, charging status and time to full. |
-| **Buds** | 2x1 | Left, right and case battery of connected earbuds, or "not connected". |
+| **Head**<br><img src="docs/media/widgets/head.png" alt="Head widget" width="360"> | 5x1 | Date and next alarm in one line, with the month in dots (today is red). Tap the date for the calendar, the alarm for the clock. |
+| **Time**<br><img src="docs/media/widgets/time.png" alt="Time widget" width="200"> | 3x2 | Big dot-matrix clock (native `TextClock`, so it never lags) with a single red dot. |
+| **Weather**<br><img src="docs/media/widgets/weather.png" alt="Weather widget" width="130"> | 2x2 | Dot-matrix icon, temperature, condition, high / low. A red dot appears when rain is likely soon. Shows how old the data is when it gets stale. |
+| **Player**<br><img src="docs/media/widgets/player.png" alt="Player widget" width="360"> | 5x2 | Cover, title, artist and controls of whatever is playing, with a **per-second dot progress bar** (28 dots, the current dot in red), elapsed and remaining time. Idle state resumes your last player. |
+| **Power**<br><img src="docs/media/widgets/power.png" alt="Power widget" width="260"> | 3x1 | Battery percent, 10-dot level bar, charging status and time to full. While it charges, the last dot breathes red. |
+| **Buds** | 2x1 | Left, right and case battery of connected earbuds, with their picture (from the companion app if it is installed, otherwise a pair drawn by this app), or "no earbuds". |
 
 Design rules (dark theme only, one red accent per widget at most) are in [DESIGN_SPEC.md](DESIGN_SPEC.md).
 Requires Android 12 (API 31) or newer. Tested on One UI.

@@ -84,7 +84,7 @@ class BudsWidgetProvider : AppWidgetProvider() {
             BudsArt.plate(pic.bmp, picW, inner, density, radius, dim = !connected, tag = pic.tag)
         } else {
             BudsArt.illustrationPlate(
-                picW, inner, density, radius, BudsArt.styleFor(b.model.ifBlank { b.name }),
+                picW, inner, density, radius,
                 if (connected && b.hasSides) b.left else -1, if (connected && b.hasSides) b.right else -1, connected,
             )
         }

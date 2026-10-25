@@ -77,8 +77,8 @@ Keep the existing engine (session picking, 80ms debounce, screen-on tick, partia
 - Updates: `ACTION_BATTERY_CHANGED` runtime receiver in the listener-service process (it is long-lived), throttled to one render per 1% change or status change; plus `ACTION_POWER_CONNECTED/DISCONNECTED`.
 
 ### 2.6 Buds — 2×1 (`BudsWidgetProvider`, new)
-- Connected: dot earbuds glyph left; right: `L 80 · R 75` (Label) and `CASE 40` (dim) if available, else single hero `80%`.
-- Disconnected: glyph in `faint`, Label `NOT CONNECTED` (dim). Never "OFF".
+- Connected: the earbuds picture left (the real model's picture from its companion app when found, else our own drawn pair: `BudsArt`, mirrored by `tools/buds_art.html`); right: `L 80 · R 75` (Label) and `CASE 40` (dim) if available, else single hero `80%`.
+- Disconnected: the picture dimmed, Label `NOT CONNECTED` (dim). Never "OFF".
 - Accent: red dot when any bud ≤ 15%.
 - Tap → `Settings.ACTION_BLUETOOTH_SETTINGS`.
 - Data, in order: reflection `BluetoothDevice.getMetadata(METADATA_UNTETHERED_{LEFT,RIGHT,CASE}_BATTERY)` → `getBatteryLevel()` → connected-only. Listen to `android.bluetooth.device.action.BATTERY_LEVEL_CHANGED`, `ACL_CONNECTED/DISCONNECTED`, A2DP/HEADSET profile connection state. Needs `BLUETOOTH_CONNECT` runtime permission (asked from app onboarding).

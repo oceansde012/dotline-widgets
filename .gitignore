@@ -26,4 +26,4 @@ secrets.*
 Thumbs.db
 captures/
 .externalNativeBuild/
-.cxx/
+.cxx/__pycache__/

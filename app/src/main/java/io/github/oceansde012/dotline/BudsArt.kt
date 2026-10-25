@@ -2,56 +2,35 @@ package io.github.oceansde012.dotline
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Matrix
+import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
-import android.graphics.Path
+import android.graphics.RadialGradient
 import android.graphics.RectF
-import kotlin.math.abs
+import android.graphics.Shader
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 
 /**
  * The earbuds picture of the Buds widget. Everything is drawn here (no photos, nothing third-party):
- * [illustrationPlate] is our own stem-style true-wireless pair, [plate] puts any picture (device image, user
- * picture) on the same rounded plate with object-fit contain. Bitmaps are cached by their inputs.
+ * [illustrationPlate] is our own true-wireless pair (white silicone tip, clear stem with a dark core, one round
+ * button), [plate] puts any picture (device image, user picture) on the same rounded plate with object-fit
+ * contain. Bitmaps are cached by their inputs.
  *
- * Illustration (geometry mirrored by tools/buds_art.py, which renders PNGs for visual iteration): one bud is the
- * smooth union of a head ellipse and a tapered stem, flat greys with a 3x3 dot grille. The battery of each bud is
- * a white level fill from the bottom; a bud at or below 15% is filled red (the widget's only accent). A dimmed
- * pair without fill is the "nothing connected" picture.
+ * Illustration (geometry mirrored by tools/buds_art.html, which renders it in a browser for visual iteration): one
+ * bud is drawn in a 120x170 box, the right bud is the mirror image. The button turns red when that bud is at or
+ * below 15% (the widget's only accent); a dimmed pair is the "nothing connected" picture.
  */
 object BudsArt {
-    private const val BODY = 0xFF3A3A3E.toInt()
-    private const val EDGE = 0xFF5A5A60.toInt()
-    private const val GRILLE = 0xFF77777D.toInt()
-    private const val FILL = 0xFFECECEE.toInt()
     private const val PLATE = 0xFF101012.toInt()
-    private const val DIM_BODY = 0xFF26262A.toInt()
-    private const val DIM_EDGE = 0xFF323236.toInt()
-    private const val DIM_GRILLE = 0xFF323236.toInt()
     private const val MAX_BYTES = 200_000
     private const val MAX_SIDE = 400f
     private const val LOW = 15
-    private const val TILT = 5f
-    private const val INSET = 2f
-
-    enum class Style { STEM, ROUND }
-
-    private class Shape(
-        val hx: Float, val hcy: Float, val rx: Float, val ry: Float, val s0: Float, val s1: Float,
-        val sy: Float, val sb: Float, val fil: Float, val pairW: Float, val pairH: Float, val dx: Float,
-    )
-
-    private val STEM = Shape(50f, 30f, 28f, 29f, 15f, 12f, 24f, 114f, 10f, 150f, 120f, 62f)
-    private val ROUND = Shape(50f, 33f, 33f, 33f, 17f, 14f, 36f, 98f, 8f, 160f, 110f, 72f)
-    private fun shape(s: Style) = if (s == Style.ROUND) ROUND else STEM
-
-    /** model name to illustration style: Ear (a) / CMF Buds have a rounder, shorter stem */
-    fun styleFor(model: String): Style {
-        val m = model.lowercase()
-        return if ("(a)" in m || "cmf" in m) Style.ROUND else Style.STEM
-    }
+    private const val BUD_W = 120f
+    private const val BUD_H = 170f
+    private const val GAP = 112f          // distance between the two bud boxes
+    private const val DIM_ALPHA = 97      // 0.38 of 255
 
     private val cache = object : LinkedHashMap<String, Bitmap>(8, 0.75f, true) {
         override fun removeEldestEntry(e: MutableMap.MutableEntry<String, Bitmap>?) = size > 12
@@ -66,104 +45,93 @@ object BudsArt {
         return Pair((wDp * s).toInt().coerceAtLeast(8), (hDp * s).toInt().coerceAtLeast(8))
     }
 
-    // --- outline: head ellipse smoothly united with a tapered, round-ended stem -------------------------
+    private fun paint(color: Int = Color.WHITE) = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
 
-    private fun halfWidth(s: Shape, y: Float): Float {
-        var ell = 0f
-        val dy = (y - s.hcy) / s.ry
-        if (abs(dy) < 1f) ell = s.rx * sqrt(1f - dy * dy)
-        var st = 0f
-        if (y >= s.sy) {
-            val t = min(1f, (y - s.sy) / (s.sb - s.sy))
-            st = s.s0 + (s.s1 - s.s0) * t
-            val yc = s.sb - s.s1
-            if (y > yc) {
-                val d = y - yc
-                st = if (d < s.s1) sqrt(max(0f, s.s1 * s.s1 - d * d)) else 0f
-            }
-        }
-        if (ell <= 0f || st <= 0f) return max(ell, st)
-        val h = (0.5f + 0.5f * (ell - st) / s.fil).coerceIn(0f, 1f)
-        return st * (1 - h) + ell * h + s.fil * h * (1 - h)
-    }
+    private fun fillRound(c: Canvas, l: Float, t: Float, r: Float, b: Float, rad: Float, p: Paint) =
+        c.drawRoundRect(RectF(l, t, r, b), rad, rad, p)
 
-    private val outlines = HashMap<String, Path>()
-
-    @Synchronized
-    private fun outline(style: Style, inset: Float): Path = outlines.getOrPut("$style|$inset") {
-        val s = shape(style)
-        val left = ArrayList<FloatArray>()
-        val right = ArrayList<FloatArray>()
-        var y = 0f
-        while (y <= s.sb + 0.5f) {
-            val w = halfWidth(s, y) - inset
-            if (w > 0.05f) {
-                left.add(floatArrayOf(s.hx - w, y)); right.add(floatArrayOf(s.hx + w, y))
-            }
-            y += 0.5f
-        }
-        Path().apply {
-            left.forEachIndexed { i, p -> if (i == 0) moveTo(p[0], p[1]) else lineTo(p[0], p[1]) }
-            for (i in right.indices.reversed()) lineTo(right[i][0], right[i][1])
-            close()
-        }
-    }
-
-    private fun budMatrix(s: Shape, mirror: Boolean, k: Float, ox: Float, oy: Float) = Matrix().apply {
-        postRotate(if (mirror) TILT else -TILT, s.hx, s.hcy)
-        if (mirror) postScale(-1f, 1f, s.hx, 0f)
-        postScale(k, k)
-        postTranslate(ox, oy)
-    }
-
-    private fun drawBud(c: Canvas, style: Style, mirror: Boolean, level: Int, connected: Boolean, k: Float, ox: Float, oy: Float, h: Int) {
-        val s = shape(style)
-        val m = budMatrix(s, mirror, k, ox, oy)
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    /** one bud in its 120x170 box (right bud seen from outside); [mirror] makes the left one */
+    private fun drawBud(c: Canvas, mirror: Boolean, low: Boolean, dim: Boolean, k: Float, ox: Float, oy: Float) {
         c.save()
-        c.concat(m)
-        p.color = if (connected) EDGE else DIM_EDGE
-        c.drawPath(outline(style, 0f), p)
-        p.color = if (connected) BODY else DIM_BODY
-        c.drawPath(outline(style, INSET), p)
+        c.translate(ox, oy)
+        c.scale(k, k)
+        if (mirror) { c.translate(BUD_W, 0f); c.scale(-1f, 1f) }
+        if (dim) c.saveLayerAlpha(0f, 0f, BUD_W, BUD_H, DIM_ALPHA)
+
+        // ear tip: a tilted silicone dome with the dark opening on its rim
+        c.save()
+        c.translate(40f, 46f)
+        c.rotate(-35.5f)
+        val dome = paint().apply {
+            shader = RadialGradient(-8f, -10f, 52f, intArrayOf(0xFFFFFFFF.toInt(), 0xFFECECEF.toInt(), 0xFFB4B4BB.toInt()), floatArrayOf(0f, 0.65f, 1f), Shader.TileMode.CLAMP)
+        }
+        c.drawOval(RectF(-40f, -33f, 40f, 33f), dome)
+        c.drawOval(RectF(-31f, -25f, 23f, 13f), paint().apply {
+            shader = LinearGradient(-20f, -24f, 10f, 10f, 0xFF2C2C31.toInt(), 0xFF08080A.toInt(), Shader.TileMode.CLAMP)
+        })
+        c.drawOval(RectF(-25f, -18f, 17f, 8f), paint(0xFFE4E4E8.toInt()))
+        c.drawOval(RectF(-19f, -12.5f, 13f, 4.5f), paint().apply {
+            shader = LinearGradient(0f, -18f, 0f, 8f, 0xFF1B1B1F.toInt(), 0xFF050506.toInt(), Shader.TileMode.CLAMP)
+        })
+        c.save(); c.rotate(-28.6f, -28f, 10f)
+        c.drawOval(RectF(-36f, 7.5f, -20f, 12.5f), paint(0xB3FFFFFF.toInt()))
         c.restore()
-        if (connected && level in 0..100) {
-            // level line is horizontal on screen: clip in screen space, then draw the inner shape lit
-            val top = s.hcy - s.ry + INSET
-            val bottom = s.sb - INSET
-            val yFill = (bottom - (bottom - top) * level / 100f) * k + oy
-            c.save()
-            c.clipRect(0f, yFill, c.width.toFloat(), h.toFloat())
-            c.concat(m)
-            p.color = if (level <= LOW) Nd.ACCENT else FILL
-            c.drawPath(outline(style, INSET), p)
-            c.restore()
-        }
+        c.restore()
+
+        // stem: clear shell around a dark core
         c.save()
-        c.concat(m)
-        p.color = if (connected) GRILLE else DIM_GRILLE
-        for (i in -1..1) for (j in -1..1) c.drawCircle(s.hx + i * 8.5f, s.hcy + j * 8.5f, 2f, p)
+        c.rotate(4f, 60f, 100f)
+        fillRound(c, 48f, 34f, 88f, 160f, 16f, paint().apply {
+            shader = LinearGradient(46f, 0f, 86f, 0f, intArrayOf(0x8CFFFFFF.toInt(), 0x24FFFFFF, 0x66FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+        })
+        c.drawRoundRect(RectF(48f, 34f, 88f, 160f), 16f, 16f, paint(0xF2E6E8EE.toInt()).apply { style = Paint.Style.STROKE; strokeWidth = 1.6f })
+        fillRound(c, 53f, 39f, 83f, 155f, 12f, paint(0xFF0B0B0D.toInt()))
+        c.save()
+        c.clipPath(android.graphics.Path().apply { addRoundRect(RectF(53f, 39f, 83f, 155f), 12f, 12f, android.graphics.Path.Direction.CW) })
+        val dot = paint(0x12FFFFFF)
+        var yy = 44
+        while (yy < 152) {
+            var xx = 56 + ((yy / 4) % 2) * 2
+            while (xx < 82) { c.drawCircle(xx.toFloat(), yy.toFloat(), 0.7f, dot); xx += 4 }
+            yy += 4
+        }
+        c.restore()
+        // button: the one accent (red when this bud is low)
+        c.drawCircle(64f, 58f, 7.5f, paint().apply {
+            val (a, b) = if (low) 0xFFFF5A60.toInt() to 0xFFC4141C.toInt() else 0xFFFFFFFF.toInt() to 0xFFB9BBC2.toInt()
+            shader = RadialGradient(62.5f, 56.5f, 11f, a, b, Shader.TileMode.CLAMP)
+        })
+        // speaker grille top right, microphone grille at the foot
+        val grille = paint(0xFF2A2A2F.toInt())
+        val lines = paint(0x59FFFFFF)
+        fillRound(c, 72f, 44f, 81f, 57f, 3f, grille)
+        for (i in 0 until 4) c.drawRect(73.5f, 46f + i * 3f, 79.5f, 46.9f + i * 3f, lines)
+        fillRound(c, 60f, 144f, 76f, 151f, 2.5f, grille)
+        for (i in 0 until 3) c.drawRect(62f, 145.2f + i * 2f, 74f, 145.9f + i * 2f, lines)
+        c.restore()
+
+        if (dim) c.restore()
         c.restore()
     }
 
     /** the plate carrying the illustration: [left] / [right] percent or -1; [connected] false = dimmed pair */
     @Synchronized
     fun illustrationPlate(
-        wDp: Float, hDp: Float, density: Float, radiusDp: Float, style: Style, left: Int, right: Int, connected: Boolean,
+        wDp: Float, hDp: Float, density: Float, radiusDp: Float, left: Int, right: Int, connected: Boolean,
     ): Bitmap {
-        val key = "iplate|${wDp.toInt()}x${hDp.toInt()}|$density|$radiusDp|$style|$left|$right|$connected"
+        val key = "iplate|${wDp.toInt()}x${hDp.toInt()}|$density|$radiusDp|$left|$right|$connected"
         cache[key]?.let { return it }
         val (w, h) = size(wDp, hDp, density)
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val r = radiusDp * w / wDp
-        c.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), r, r, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = PLATE })
-        val s = shape(style)
-        val k = min(w / s.pairW, h / s.pairH) * 0.9f
-        val ox = (w - s.pairW * k) / 2f
-        val oy = (h - s.pairH * k) / 2f
-        drawBud(c, style, false, if (connected) left else -1, connected, k, ox, oy, h)
-        drawBud(c, style, true, if (connected) right else -1, connected, k, ox + s.dx * k, oy, h)
+        c.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), r, r, paint(PLATE))
+        val pairW = GAP + BUD_W
+        val k = min(w / pairW, h / BUD_H) * 0.9f
+        val ox = (w - pairW * k) / 2f
+        val oy = (h - BUD_H * k) / 2f
+        drawBud(c, false, connected && left in 0..LOW, !connected, k, ox, oy)
+        drawBud(c, true, connected && right in 0..LOW, !connected, k, ox + GAP * k, oy)
         cache[key] = bmp
         return bmp
     }
