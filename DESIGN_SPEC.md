@@ -77,7 +77,7 @@ Keep the existing engine (session picking, 80ms debounce, screen-on tick, partia
 - Updates: `ACTION_BATTERY_CHANGED` runtime receiver in the listener-service process (it is long-lived), throttled to one render per 1% change or status change; plus `ACTION_POWER_CONNECTED/DISCONNECTED`.
 
 ### 2.6 Buds — 2×1 (`BudsWidgetProvider`, new)
-- Connected: the earbuds picture left (the real model's picture from its companion app when found, else our own drawn pair: `BudsArt`, mirrored by `tools/buds_art.html`); right: `L 80 · R 75` (Label) and `CASE 40` (dim) if available, else single hero `80%`.
+- Connected: the earbuds picture left (the real model's picture from its companion app when found, else our own drawn pair: `BudsArt`, mirrored by `tools/buds_art.html`; three styles picked from the device name by `BudsArt.styleFor`: stem (default), round bean, over-ear); right: `L 80 · R 75` (Label) and `CASE 40` (dim) if available, else single hero `80%`.
 - Disconnected: the picture dimmed, Label `NOT CONNECTED` (dim). Never "OFF".
 - Accent: red dot when any bud ≤ 15%.
 - Tap → `Settings.ACTION_BLUETOOTH_SETTINGS`.

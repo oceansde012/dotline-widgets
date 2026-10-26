@@ -1,0 +1,59 @@
+name: Add my earbuds
+description: The Buds widget shows no battery, the wrong picture or only "connected" for your earbuds / headphones
+labels: [earbuds]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every brand reports its battery in its own way, so each model is added after someone with the real earbuds
+        sends what the phone sees. This takes two minutes and no root. Thank you!
+  - type: input
+    id: model
+    attributes:
+      label: Earbuds / headphones model
+      placeholder: e.g. Galaxy Buds2 Pro, Sony WF-1000XM5, JBL Tune Beam
+    validations:
+      required: true
+  - type: dropdown
+    id: shown
+    attributes:
+      label: What does the Buds widget show now?
+      options:
+        - Nothing, or "no earbuds"
+        - Only "connected" (no battery number)
+        - One battery number
+        - Left and right, but no case
+        - Left, right and case (all fine, only the picture is wrong)
+    validations:
+      required: true
+  - type: dropdown
+    id: pic
+    attributes:
+      label: Which drawn pair looks closest to yours?
+      description: The app draws its own pair, no brand pictures are used.
+      options:
+        - Stem (AirPods-like)
+        - Round bean (Galaxy Buds-like)
+        - Over-ear headphones
+        - None of them
+  - type: input
+    id: companion
+    attributes:
+      label: Companion app of the earbuds (if any)
+      placeholder: e.g. Galaxy Wearable, Sony Headphones Connect, JBL Headphones
+  - type: textarea
+    id: report
+    attributes:
+      label: Diagnostics report
+      description: |
+        Connect the earbuds, open this app, scroll to DIAGNOSTICS, tap COPY REPORT and paste it here
+        (at least the BLUETOOTH and TAP TARGETS parts). It holds device names and Bluetooth addresses of paired
+        devices: remove anything you do not want to share first.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: battery
+    attributes:
+      label: What does the real battery say?
+      description: Numbers from the earbuds' own app or the Android quick settings (left / right / case), and when you looked.

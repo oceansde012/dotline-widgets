@@ -64,7 +64,7 @@ class BudsPic(val bmp: Bitmap?, val source: String, val tag: String)
  * Connected audio device + earbud battery + earbud picture (DESIGN_SPEC.md 2.6).
  *
  * Battery order: untethered metadata (left / right / case) via reflection, BluetoothDevice.getBatteryLevel()
- * via reflection, the BATTERY_LEVEL_CHANGED broadcast, else connected-only. These are hidden / system APIs:
+ * via reflection, the BATTERY_LEVEL_CHANGED broadcast, the HFP vendor battery event, else connected-only. These are hidden / system APIs:
  * every call is guarded and a failure just means "unknown" (the diagnostics card says `blocked`).
  *
  * Picture order: user-chosen picture (explicit choice wins) -> image read from the installed Nothing X app ->
@@ -108,6 +108,11 @@ object BudsRepo {
     @Volatile private var refreshing = false
     private class Level(val percent: Int, val at: Long)
     private val broadcastLevel = ConcurrentHashMap<String, Level>()
+    /** HFP vendor events (`+IPHONEACCEV`, `+XEVENT`): sent on change, so a reading stays usable much longer than a polled one */
+    private val vendorLevel = ConcurrentHashMap<String, Level>()
+    private const val VENDOR_FRESH_MS = 2 * 60 * 60_000L
+    /** Bluetooth SIG company ids whose vendor-specific HFP commands carry a battery level: Apple, Plantronics */
+    val VENDOR_COMPANY_IDS = intArrayOf(76, 85)
     private val tried = HashSet<String>()
     private val failedAt = ConcurrentHashMap<String, Long>()   // picture resolve that found nothing: retried later
     private val failCount = ConcurrentHashMap<String, Int>()
@@ -162,6 +167,52 @@ object BudsRepo {
         val level = i.getIntExtra(EXTRA_BATTERY_LEVEL, -1)
         val address = try { d.address } catch (e: Exception) { return }
         if (level in 0..100) broadcastLevel[address] = Level(level, System.currentTimeMillis())
+    }
+
+    /**
+     * `BluetoothHeadset.ACTION_VENDOR_SPECIFIC_HEADSET_EVENT`: the headset's own battery report over HFP, the only
+     * level many earbuds send. Apple accessory format: `+IPHONEACCEV=<n>,<key>,<val>,...` with key 1 = battery,
+     * val 0..9 -> (val+1)*10 %. Plantronics / Poly: `+XEVENT=BATTERY-LEVEL,<level>,<max>,...`. Both formats are as
+     * commonly documented and not verified on real hardware; whether Android forwards the event depends on the
+     * phone's Bluetooth stack. A value outside 0..100 is ignored.
+     */
+    fun onVendorEvent(i: Intent) {
+        val d = try {
+            @Suppress("DEPRECATION") i.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+        } catch (e: Exception) {
+            null
+        } ?: return
+        val address = try { d.address } catch (e: Exception) { return }
+        val cmd = i.getStringExtra(BluetoothHeadset.EXTRA_VENDOR_SPECIFIC_HEADSET_EVENT_CMD) ?: return
+        @Suppress("DEPRECATION") val raw = i.extras?.get(BluetoothHeadset.EXTRA_VENDOR_SPECIFIC_HEADSET_EVENT_ARGS)
+        val args = (raw as? Array<*>)?.map { it.toString().trim() } ?: return
+        val level = vendorPercent(cmd, args)
+        if (level in 0..100) vendorLevel[address] = Level(level, System.currentTimeMillis())
+    }
+
+    /** battery percent of one vendor command, -1 when it carries none */
+    internal fun vendorPercent(cmd: String, args: List<String>): Int {
+        when (cmd.trim().uppercase(Locale.ROOT)) {
+            "+IPHONEACCEV" -> {
+                val n = args.firstOrNull()?.toIntOrNull() ?: return -1
+                for (k in 0 until n) {
+                    if (args.getOrNull(1 + 2 * k)?.toIntOrNull() != 1) continue
+                    val v = args.getOrNull(2 + 2 * k)?.toIntOrNull() ?: return -1
+                    return if (v in 0..9) (v + 1) * 10 else -1
+                }
+            }
+            "+XEVENT" -> {
+                if (args.firstOrNull()?.uppercase(Locale.ROOT)?.contains("BATTERY") != true) return -1
+                val level = args.getOrNull(1)?.toIntOrNull() ?: return -1
+                val max = args.getOrNull(2)?.toIntOrNull()
+                return when {
+                    max != null && max > 0 && level in 0..max -> level * 100 / max
+                    level in 0..100 -> level
+                    else -> -1
+                }
+            }
+        }
+        return -1
     }
 
     fun forgetTried() {
@@ -331,8 +382,12 @@ object BudsRepo {
                 else {
                     single = deviceBattery(d)
                     if (single >= 0) source = "getBatteryLevel"
-                    else broadcastLevel[address]?.takeIf { System.currentTimeMillis() - it.at < FRESH_MS }
-                        ?.let { single = it.percent; source = "BATTERY_LEVEL_CHANGED broadcast" }
+                    else {
+                        broadcastLevel[address]?.takeIf { System.currentTimeMillis() - it.at < FRESH_MS }
+                            ?.let { single = it.percent; source = "BATTERY_LEVEL_CHANGED broadcast" }
+                        if (single < 0) vendorLevel[address]?.takeIf { System.currentTimeMillis() - it.at < VENDOR_FRESH_MS }
+                            ?.let { single = it.percent; source = "HFP vendor event" }
+                    }
                 }
             }
             val modelRaw = metaString(d, META_MODEL_NAME) ?: name
@@ -755,8 +810,9 @@ object BudsRepo {
                 .joinToString(" ") { "${it.first}=${metaBattery(d, it.second).let { v -> if (v < 0) "-" else v.toString() }}" }
             val gb = deviceBattery(d).let { if (it < 0) "-" else it.toString() }
             val bc = broadcastLevel[d.address]?.let { "${it.percent}% ${(System.currentTimeMillis() - it.at) / 60_000}m ago" } ?: "-"
+            val vc = vendorLevel[d.address]?.let { "${it.percent}% ${(System.currentTimeMillis() - it.at) / 60_000}m ago" } ?: "-"
             val hp = if (isHeadphones(d)) "headphones" else "not headphones"
-            out.add("${if (conn) "*" else " "} $nm | $hp | meta $keys | getBatteryLevel=$gb | broadcast=$bc")
+            out.add("${if (conn) "*" else " "} $nm | $hp | meta $keys | getBatteryLevel=$gb | broadcast=$bc | hfp vendor=$vc")
         }
         val b = last
         out.add("source won: ${b?.source ?: "none"}; connected=${b?.connected}; L=${b?.left} R=${b?.right} case=${b?.case}")

@@ -4,10 +4,10 @@
 <!-- Browser mirror of BudsArt.kt (the earbuds picture of the Buds widget): keep the two in sync.
      Open it to look at the states, or render the picker preview PNG with
        node tools/buds_art.mjs <out.png>      (Playwright; writes app/src/main/res/drawable-nodpi/pv_buds.png by default)
-     ?w=62&h=42&scale=4&state=on|low|dim picks the plate size (dp), pixel scale and state. -->
+     ?w=62&h=42&scale=4&state=on|low|dim&style=stem|bean|over picks the plate size (dp), pixel scale, state and drawing style. -->
 <body style="margin:0;background:#101012"><canvas id="c"></canvas><script>
 const q = new URLSearchParams(location.search);
-const WD = +(q.get('w') || 62), HD = +(q.get('h') || 42), SC = +(q.get('scale') || 4), STATE = q.get('state') || 'on';
+const WD = +(q.get('w') || 62), HD = +(q.get('h') || 42), SC = +(q.get('scale') || 4), STATE = q.get('state') || 'on', STYLE = q.get('style') || 'stem';
 const c = document.getElementById('c'), x = c.getContext('2d');
 c.width = Math.round(WD * SC); c.height = Math.round(HD * SC);
 function rr(a, b, w, h, r) { x.beginPath(); x.roundRect(a, b, w, h, r); }
@@ -47,8 +47,63 @@ function bud(ox, oy, k, mirror, state) {
   for (let i = 0; i < 3; i++) x.fillRect(62, 145.2 + i * 2, 12, .7);
   x.restore(); x.restore();
 }
+// bean: a round bud with a short tip (Galaxy Buds / Pixel Buds / most "bean" shaped true-wireless buds)
+function bean(ox, oy, k, mirror, state) {
+  x.save(); x.translate(ox, oy); x.scale(k, k); if (mirror) { x.translate(120, 0); x.scale(-1, 1); }
+  const dim = state === 'dim', low = state === 'low';
+  x.globalAlpha = dim ? .38 : 1;
+  // ear tip: a short silicone nozzle at the lower inner side of the shell
+  x.save(); x.translate(26, 118); x.rotate(0.5);
+  let g = x.createRadialGradient(-5, -6, 2, 0, 0, 26); g.addColorStop(0, '#FFFFFF'); g.addColorStop(.65, '#ECECEF'); g.addColorStop(1, '#B4B4BB');
+  x.fillStyle = g; x.beginPath(); x.ellipse(0, 0, 20, 26, 0, 0, 7); x.fill();
+  x.fillStyle = '#0A0A0C'; x.beginPath(); x.ellipse(-4, 2, 11, 15, 0, 0, 7); x.fill();
+  x.restore();
+  // body: round shell, round touch face with one button
+  x.save(); x.translate(70, 84); x.rotate(0.3);
+  g = x.createRadialGradient(-14, -22, 4, 0, 0, 62); g.addColorStop(0, '#FFFFFF'); g.addColorStop(.55, '#DCDCE1'); g.addColorStop(1, '#8E8E97');
+  x.fillStyle = g; x.beginPath(); x.ellipse(0, 0, 42, 54, 0, 0, 7); x.fill();
+  x.lineWidth = 1.4; x.strokeStyle = 'rgba(230,232,238,.95)'; x.stroke();
+  x.fillStyle = '#0B0B0D'; x.beginPath(); x.arc(1, -2, 23, 0, 7); x.fill();
+  x.save(); x.beginPath(); x.arc(1, -2, 23, 0, 7); x.clip(); x.fillStyle = 'rgba(255,255,255,.07)';
+  for (let yy = -24; yy < 24; yy += 4) for (let xx = -24 + ((yy / 4) % 2 + 2) % 2 * 2; xx < 26; xx += 4) { x.beginPath(); x.arc(xx, yy, .7, 0, 7); x.fill(); }
+  x.restore();
+  g = x.createRadialGradient(-.5, -3.5, 1, 1, -2, 9);
+  if (low) { g.addColorStop(0, '#FF5A60'); g.addColorStop(1, '#C4141C'); } else { g.addColorStop(0, '#FFFFFF'); g.addColorStop(1, '#B9BBC2'); }
+  x.fillStyle = g; x.beginPath(); x.arc(1, -2, 7.5, 0, 7); x.fill();
+  x.restore(); x.restore();
+}
+// over-ear: the whole pair is one headset (band + two cups), drawn in the same 232x170 box as the two buds
+function over(ox, oy, k, state, stateL, stateR) {
+  x.save(); x.translate(ox, oy); x.scale(k, k);
+  const dim = state === 'dim';
+  x.globalAlpha = dim ? .38 : 1;
+  const W = 232;
+  // band: clear shell around a dark core
+  x.lineCap = 'round';
+  let g = x.createLinearGradient(0, 8, 0, 90); g.addColorStop(0, 'rgba(255,255,255,.75)'); g.addColorStop(1, 'rgba(255,255,255,.35)');
+  const band = () => { x.beginPath(); x.moveTo(40, 96); x.bezierCurveTo(40, -6, W - 40, -6, W - 40, 96); };
+  band(); x.lineWidth = 15; x.strokeStyle = 'rgba(230,232,238,.95)'; x.stroke();
+  band(); x.lineWidth = 13; x.strokeStyle = g; x.stroke();
+  band(); x.lineWidth = 8; x.strokeStyle = '#0B0B0D'; x.stroke();
+  // cups
+  for (const [cx, st] of [[40, stateL], [W - 40, stateR]]) {
+    x.save(); x.translate(cx, 112);
+    g = x.createLinearGradient(-30, 0, 30, 0); g.addColorStop(0, 'rgba(255,255,255,.62)'); g.addColorStop(.5, 'rgba(255,255,255,.2)'); g.addColorStop(1, 'rgba(255,255,255,.5)');
+    rr(-31, -50, 62, 100, 28); x.fillStyle = '#17171A'; x.fill(); x.fillStyle = g; x.fill(); x.lineWidth = 1.6; x.strokeStyle = 'rgba(230,232,238,.95)'; x.stroke();
+    rr(-24, -43, 48, 86, 22); x.fillStyle = '#0B0B0D'; x.fill();
+    x.save(); rr(-24, -43, 48, 86, 22); x.clip(); x.fillStyle = 'rgba(255,255,255,.07)';
+    for (let yy = -40; yy < 44; yy += 4) for (let xx = -22 + ((yy / 4) % 2 + 2) % 2 * 2; xx < 24; xx += 4) { x.beginPath(); x.arc(xx, yy, .7, 0, 7); x.fill(); }
+    x.restore();
+    g = x.createRadialGradient(-1.5, -1.5, 1, 0, 0, 9);
+    if (st === 'low') { g.addColorStop(0, '#FF5A60'); g.addColorStop(1, '#C4141C'); } else { g.addColorStop(0, '#FFFFFF'); g.addColorStop(1, '#B9BBC2'); }
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, 7.5, 0, 7); x.fill();
+    x.restore();
+  }
+  x.restore();
+}
 // the pair, centred in the plate with 10% air (as BudsArt.illustrationPlate)
 const pairW = 112 + 120, k = Math.min(c.width / pairW, c.height / 170) * .9;
 const ox = (c.width - pairW * k) / 2, oy = (c.height - 170 * k) / 2;
-bud(ox, oy, k, false, STATE); bud(ox + 112 * k, oy, k, true, STATE);
+if (STYLE === 'over') over(ox, oy, k, STATE, STATE, STATE);
+else { const f = STYLE === 'bean' ? bean : bud; f(ox, oy, k, false, STATE); f(ox + 112 * k, oy, k, true, STATE); }
 </script>

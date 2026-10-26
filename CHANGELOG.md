@@ -5,6 +5,8 @@ to the release body; when there is none it uses `## latest`.
 
 ## latest
 - Head: the alarm tap opens the Clock app itself (Samsung, Google and Xiaomi/AOSP clocks) instead of the generic "show alarms" request, which on some phones did nothing; the diagnostics report lists where each tap goes (TAP TARGETS).
+- Buds: more earbuds get a battery number: the headset's own HFP battery report (Apple-style `+IPHONEACCEV` and Plantronics `+XEVENT`) is read as one more source after the Android ones; the diagnostics report shows it as `hfp vendor`. Left / right / case for other brands still needs their own protocol, send your model through the new "Add my earbuds" issue form.
+- Buds: two more drawn pictures besides the stem pair, a round bean pair (Galaxy Buds, Pixel Buds, Sony WF and similar) and over-ear headphones (Sony WH, Bose, AirPods Max and similar), chosen from the device name; unknown devices keep the stem pair.
 - Buds: a new drawn pair of earbuds (white tip, clear stem) is shown when the earbuds' own picture is not available, and the widget picker preview now looks like the real widget (picture, name, battery, case).
 - Languages: English, Ukrainian and Russian. The app follows the phone's language (anything else shows English); under SETTINGS → LANGUAGE you can pick one yourself, and widgets, weather city search and the update notification follow it.
 - App screen redesigned: widgets first, setup collapses to one `ALL SET` row, one font family, compact add buttons, even spacing, diagnostics at the bottom; the update card always shows a status.
