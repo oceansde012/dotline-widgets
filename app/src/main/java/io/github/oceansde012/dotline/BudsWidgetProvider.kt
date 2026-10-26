@@ -86,6 +86,7 @@ class BudsWidgetProvider : AppWidgetProvider() {
             BudsArt.illustrationPlate(
                 picW, inner, density, radius,
                 if (connected && b.hasSides) b.left else -1, if (connected && b.hasSides) b.right else -1, connected,
+                BudsArt.styleFor("${b.model} ${b.name}"),
             )
         }
         rv.setImageViewBitmap(R.id.pic, plate)

@@ -27,3 +27,6 @@ Thumbs.db
 captures/
 .externalNativeBuild/
 .cxx/__pycache__/
+
+# python bytecode (tools/*.py)
+__pycache__/

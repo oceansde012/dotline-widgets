@@ -23,7 +23,7 @@ Real screenshots from a Galaxy S25 Ultra (One UI). The album cover in the Player
 | **Weather**<br><img src="docs/media/widgets/weather.png" alt="Weather widget" width="130"> | 2x2 | Dot-matrix icon, temperature, condition, high / low. A red dot appears when rain is likely soon. Shows how old the data is when it gets stale. |
 | **Player**<br><img src="docs/media/widgets/player.png" alt="Player widget" width="360"> | 5x2 | Cover, title, artist and controls of whatever is playing, with a **per-second dot progress bar** (28 dots, the current dot in red), elapsed and remaining time. Idle state resumes your last player. |
 | **Power**<br><img src="docs/media/widgets/power.png" alt="Power widget" width="260"> | 3x1 | Battery percent, 10-dot level bar, charging status and time to full. While it charges, the last dot breathes red. |
-| **Buds** | 2x1 | Left, right and case battery of connected earbuds, with their picture (from the companion app if it is installed, otherwise a pair drawn by this app), or "no earbuds". |
+| **Buds** | 2x1 | Left, right and case battery of connected earbuds, with their picture (from the companion app if it is installed, otherwise a pair drawn by this app: stem, round bean or over-ear), or "no earbuds". Missing your model? Open an "Add my earbuds" issue. |
 
 Design rules (dark theme only, one red accent per widget at most) are in [DESIGN_SPEC.md](DESIGN_SPEC.md).
 Requires Android 12 (API 31) or newer. Tested on One UI.

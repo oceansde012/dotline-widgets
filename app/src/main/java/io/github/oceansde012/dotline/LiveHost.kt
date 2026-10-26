@@ -39,8 +39,14 @@ object LiveHost {
         BudsRepo.ACTION_BATTERY_LEVEL_CHANGED,
     )
 
+    /** vendor-specific HFP events are delivered per company id category */
+    private fun vendorFilter() = IntentFilter(BluetoothHeadset.ACTION_VENDOR_SPECIFIC_HEADSET_EVENT).apply {
+        for (id in BudsRepo.VENDOR_COMPANY_IDS) addCategory(BluetoothHeadset.VENDOR_SPECIFIC_HEADSET_EVENT_COMPANY_ID_CATEGORY + "." + id)
+    }
+
     private const val USER_PRESENT_MIN_AGE_MS = 10 * 60 * 1000L
     private var registered = false
+    private var vendorRegistered = false
 
     @Synchronized
     fun ensure(ctx: Context) {
@@ -59,6 +65,18 @@ object LiveHost {
             registered = true
         } catch (e: Exception) {
             android.util.Log.w("NdLive", "register failed", e)
+        }
+        // own try: a refusal here must not undo the registrations above
+        if (vendorRegistered) return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                a.registerReceiver(vendorReceiver, vendorFilter(), Context.RECEIVER_EXPORTED)
+            } else {
+                a.registerReceiver(vendorReceiver, vendorFilter())
+            }
+            vendorRegistered = true
+        } catch (e: Exception) {
+            android.util.Log.w("NdLive", "vendor register failed", e)
         }
     }
 
@@ -80,6 +98,13 @@ object LiveHost {
                 Intent.ACTION_BATTERY_CHANGED -> PowerWidgetProvider.onBattery(context, intent, force = false)
                 Intent.ACTION_POWER_CONNECTED, Intent.ACTION_POWER_DISCONNECTED -> PowerWidgetProvider.refresh(context)
             }
+        }
+    }
+
+    private val vendorReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            BudsRepo.onVendorEvent(intent)
+            BudsRepo.refreshAsync(context)
         }
     }
 
