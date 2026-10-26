@@ -52,6 +52,7 @@
         <package android:name="com.spotify.music" />
         <package android:name="com.sec.android.app.clockpackage" />
         <package android:name="com.google.android.deskclock" />
+        <package android:name="com.android.deskclock" />
         <package android:name="com.samsung.android.calendar" />
         <package android:name="com.google.android.calendar" />
         <package android:name="com.samsung.android.lool" />

@@ -27,7 +27,7 @@ object Diagnostics {
 
     private fun builtIn(a: Context): List<Section> = listOf(
         device(a), notification(a), sessions(a), spotify(a), Section("BLUETOOTH", safe { BudsRepo.diagnose(a) }),
-        weather(a), battery(a), updater(a),
+        weather(a), battery(a), updater(a), Section("TAP TARGETS", safe { Taps.diagnose(a) }),
     )
 
     fun report(a: Context): String = sections(a).joinToString("\n\n") { s -> s.title + "\n" + s.lines.joinToString("\n") { "  $it" } }
