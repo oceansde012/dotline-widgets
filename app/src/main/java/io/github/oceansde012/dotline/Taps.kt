@@ -20,6 +20,7 @@ object Taps {
 
     const val SAMSUNG_CLOCK = "com.sec.android.app.clockpackage"
     const val GOOGLE_CLOCK = "com.google.android.deskclock"
+    const val AOSP_CLOCK = "com.android.deskclock"   // Xiaomi (MIUI / HyperOS) and AOSP-based ROMs
     const val SAMSUNG_CALENDAR = "com.samsung.android.calendar"
     const val GOOGLE_CALENDAR = "com.google.android.calendar"
     const val SAMSUNG_CARE = "com.samsung.android.lool"
@@ -44,8 +45,7 @@ object Taps {
     fun ownApp(ctx: Context): Intent =
         new(Intent(ctx, MainActivity::class.java)).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
-    /** first resolvable candidate, else this app */
-    fun pending(ctx: Context, req: Int, what: String, vararg candidates: Intent?): PendingIntent {
+    private fun firstResolvable(ctx: Context, candidates: Array<out Intent?>): Intent? {
         val pm = ctx.packageManager
         for (c in candidates) {
             if (c == null) continue
@@ -54,11 +54,34 @@ object Taps {
             } catch (e: Exception) {
                 false
             }
-            if (ok) return PendingIntent.getActivity(ctx, req, new(c), immutable())
+            if (ok) return c
         }
+        return null
+    }
+
+    /** first resolvable candidate, else this app */
+    fun pending(ctx: Context, req: Int, what: String, vararg candidates: Intent?): PendingIntent {
+        firstResolvable(ctx, candidates)?.let { return PendingIntent.getActivity(ctx, req, new(it), immutable()) }
         Log.w(TAG, "$what: no target resolved, opening this app")
         return PendingIntent.getActivity(ctx, req, ownApp(ctx), immutable())
     }
+
+    /** what a tap on [candidates] opens, for the diagnostics report */
+    private fun describe(ctx: Context, vararg candidates: Intent?): String {
+        val i = firstResolvable(ctx, candidates) ?: return "none, opens this app"
+        val comp = try {
+            i.resolveActivity(ctx.packageManager)?.flattenToShortString()
+        } catch (e: Exception) {
+            null
+        }
+        return comp ?: i.action ?: "?"
+    }
+
+    fun diagnose(ctx: Context): List<String> = listOf(
+        "alarm tap: ${describe(ctx, launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK), launch(ctx, AOSP_CLOCK), Intent(AlarmClock.ACTION_SHOW_ALARMS))}",
+        "clock tap: ${describe(ctx, launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK), launch(ctx, AOSP_CLOCK), Intent(AlarmClock.ACTION_SHOW_ALARMS))}",
+        "calendar tap: ${describe(ctx, Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR), launch(ctx, SAMSUNG_CALENDAR), launch(ctx, GOOGLE_CALENDAR))}",
+    )
 
     fun calendar(ctx: Context): PendingIntent = pending(
         ctx, REQ_CALENDAR, "calendar",
@@ -70,13 +93,13 @@ object Taps {
 
     fun alarms(ctx: Context): PendingIntent = pending(
         ctx, REQ_ALARMS, "alarms",
-        Intent(AlarmClock.ACTION_SHOW_ALARMS), launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK),
+        launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK), launch(ctx, AOSP_CLOCK), Intent(AlarmClock.ACTION_SHOW_ALARMS),
     )
 
     /** Time widget: the Clock app itself */
     fun clock(ctx: Context): PendingIntent = pending(
         ctx, REQ_CLOCK, "clock",
-        launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK), Intent(AlarmClock.ACTION_SHOW_ALARMS),
+        launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK), launch(ctx, AOSP_CLOCK), Intent(AlarmClock.ACTION_SHOW_ALARMS),
     )
 
     fun battery(ctx: Context): PendingIntent = pending(
