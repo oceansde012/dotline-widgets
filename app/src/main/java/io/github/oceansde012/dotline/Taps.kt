@@ -78,7 +78,7 @@ object Taps {
     }
 
     fun diagnose(ctx: Context): List<String> = listOf(
-        "alarm tap: ${describe(ctx, launch(ctx, AOSP_CLOCK), Intent(AlarmClock.ACTION_SHOW_ALARMS), launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK))}",
+        "alarm tap: ${describe(ctx, launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK), launch(ctx, AOSP_CLOCK), Intent(AlarmClock.ACTION_SHOW_ALARMS))}",
         "clock tap: ${describe(ctx, launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK), launch(ctx, AOSP_CLOCK), Intent(AlarmClock.ACTION_SHOW_ALARMS))}",
         "calendar tap: ${describe(ctx, Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR), launch(ctx, SAMSUNG_CALENDAR), launch(ctx, GOOGLE_CALENDAR))}",
     )
@@ -93,7 +93,7 @@ object Taps {
 
     fun alarms(ctx: Context): PendingIntent = pending(
         ctx, REQ_ALARMS, "alarms",
-        launch(ctx, AOSP_CLOCK), Intent(AlarmClock.ACTION_SHOW_ALARMS), launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK),
+        launch(ctx, SAMSUNG_CLOCK), launch(ctx, GOOGLE_CLOCK), launch(ctx, AOSP_CLOCK), Intent(AlarmClock.ACTION_SHOW_ALARMS),
     )
 
     /** Time widget: the Clock app itself */
