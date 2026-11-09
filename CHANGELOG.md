@@ -4,6 +4,10 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- Add a 4×2 Outages widget with tomorrow’s Khmelnytskoblenergo schedule for your selected group. Open the app to see today and tomorrow or check for schedule revisions.
+- Fix the update confirmation on Android 12 and 12L. Tapping the update notification opens the system confirmation dialog.
+
+## 1.0.118
 - Head: the alarm tap opens the Clock app itself (Samsung, Google and Xiaomi/AOSP clocks) instead of the generic "show alarms" request, which on some phones did nothing; the diagnostics report lists where each tap goes (TAP TARGETS).
 - Buds: more earbuds get a battery number: the headset's own HFP battery report (Apple-style `+IPHONEACCEV` and Plantronics `+XEVENT`) is read as one more source after the Android ones; the diagnostics report shows it as `hfp vendor`. Left / right / case for other brands still needs their own protocol, send your model through the new "Add my earbuds" issue form.
 - Buds: two more drawn pictures besides the stem pair, a round bean pair (Galaxy Buds, Pixel Buds, Sony WF and similar) and over-ear headphones (Sony WH, Bose, AirPods Max and similar), chosen from the device name; unknown devices keep the stem pair.

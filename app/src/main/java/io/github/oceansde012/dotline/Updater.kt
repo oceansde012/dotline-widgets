@@ -286,11 +286,8 @@ object Updater {
                 Log.w(TAG, "cannot open the install dialog", e)
             }
         }
-        // in the background: a tap on the notification opens the app, which launches the dialog
-        val open = Intent(ctx, MainActivity::class.java)
-            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .putExtra(MainActivity.EXTRA_CONFIRM, confirm)
-        notify(ctx, Lang.wrap(ctx).getString(R.string.upd_notif_title, versionOf(readyCode(ctx))), open)
+        // Open the system dialog directly from the notification using the installer's intent.
+        notify(ctx, Lang.wrap(ctx).getString(R.string.upd_notif_title, versionOf(readyCode(ctx))), confirm)
     }
 
     fun onInstallResult(ctx: Context, status: Int, message: String?) {

@@ -51,7 +51,6 @@ class MainActivity : Activity() {
         const val SECTION_NOTIFICATION = "notification"
         private const val REQ_PICK_IMAGE = 21
         const val EXTRA_INSTALL = "install_update"
-        const val EXTRA_CONFIRM = "confirm_intent"
         private const val REQ_NOTIF = 9
         private const val TAG = "NdMain"
         private const val REQ_BT = 7
@@ -129,7 +128,6 @@ class MainActivity : Activity() {
 
     private var pendingSection: String? = null
     private var pendingInstall = false
-    private var pendingConfirm: Intent? = null
 
     // updates (release builds only)
     private lateinit var installCard: Card
@@ -1047,9 +1045,7 @@ class MainActivity : Activity() {
     private fun takeUpdateExtras(i: Intent?) {
         if (i == null) return
         if (i.getBooleanExtra(EXTRA_INSTALL, false)) pendingInstall = true
-        i.getParcelableExtra(EXTRA_CONFIRM, Intent::class.java)?.let { pendingConfirm = it }
         i.removeExtra(EXTRA_INSTALL)
-        i.removeExtra(EXTRA_CONFIRM)
     }
 
     private fun buildUpdates() {
@@ -1106,14 +1102,6 @@ class MainActivity : Activity() {
         Updater.onChange = { runOnUiThread { if (!isDestroyed) renderUpdates() } }
         renderUpdates()
         if (Updater.checkDue(this)) Updater.checkAsync(this)
-        pendingConfirm?.let { c ->
-            pendingConfirm = null
-            try {
-                startActivity(c.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            } catch (e: Exception) {
-                Log.w(TAG, "stale install confirmation", e)
-            }
-        }
         if (pendingInstall) {
             pendingInstall = false
             if (!canInstall) focusCard(installCard) else Updater.install(this)
