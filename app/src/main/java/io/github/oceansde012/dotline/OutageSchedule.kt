@@ -12,7 +12,7 @@ internal data class OutageWindow(val start: Int, val end: Int) {
 }
 
 internal object OutageSchedule {
-    val zone: ZoneId = ZoneId.of("Europe/Kyiv")
+    val zone: ZoneId = runCatching { ZoneId.of("Europe/Kyiv") }.getOrElse { ZoneId.of("Europe/Kiev") }
     val queues = (1..6).flatMap { group -> listOf("$group.1", "$group.2") }
 
     private val months = listOf(
@@ -31,6 +31,10 @@ internal object OutageSchedule {
     private val timeRange = Regex("""(?:з\s+)?(\d{1,2})[:.](\d{2})\s*(?:[-–—−]|до)\s*(\d{1,2})[:.](\d{2})""", RegexOption.IGNORE_CASE)
     private val noOutages = Regex(
         """не\s+(?:застосовуватим\p{L}*|застосовуватис\p{L}*|застосовано|застосовуються|планується|передбачено|заплановано|вимикатим\p{L}*|будуть\s+(?:застос\p{L}*|діяти|вимикатим\p{L}*))|без\s+відключень""",
+        RegexOption.IGNORE_CASE,
+    )
+    private val noSchedule = Regex(
+        """(?:графіки?\s+погодинних відключень(?:\s*\(ГПВ\))?|\bГПВ\b|погодинні відключення)\s+(?:(?:на\s+)?(?:${textDate.pattern}|${numericDate.pattern})\s+)?(?:${noOutages.pattern})\b""",
         RegexOption.IGNORE_CASE,
     )
 
@@ -83,7 +87,7 @@ internal object OutageSchedule {
             require(name !in rows) { "Duplicate outage queue $name" }
             rows[name] = readHours(hours.trimEnd('.', ' '))
         }
-        if (rows.isEmpty() && noOutages.containsMatchIn(header)) return queues.associateWith { emptyList() }
+        if (rows.isEmpty() && noSchedule.containsMatchIn(header)) return queues.associateWith { emptyList() }
         require(rows.keys == queues.toSet()) { "Incomplete outage schedule" }
         return rows
     }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Open-Meteo forecast + geocoding -->
+    <!-- Open-Meteo forecast/geocoding, Khmelnytskoblenergo schedule, GitHub updates -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- required for JobScheduler jobs with a network constraint (weather, update check) on API 34+ -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -149,6 +149,21 @@
         </receiver>
 
         <receiver
+            android:name=".OutageWidgetProvider"
+            android:exported="false"
+            android:label="@string/outage_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/outage_widget_info" />
+        </receiver>
+
+        <receiver
             android:name=".PowerWidgetProvider"
             android:exported="true"
             android:label="@string/power_widget_label">
@@ -191,6 +206,11 @@
 
         <service
             android:name=".WeatherJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service
+            android:name=".OutageJob"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>

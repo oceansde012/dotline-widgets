@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="outage_widget_label">Outages</string>
+    <string name="outage_widget_desc">Tomorrow’s outage schedule by group</string>
+    <string name="outage_title_date">TOMORROW · %1$s</string>
+    <string name="outage_queue">Group %1$s</string>
+    <string name="outage_choose">Choose your outage group</string>
+    <string name="outage_waiting">Waiting for schedule data</string>
+    <string name="outage_unpublished">Schedule not published yet</string>
+    <string name="outage_unavailable">Schedule unavailable</string>
+    <string name="outage_none">No outages scheduled</string>
+    <string name="outage_checked_at">Checked %1$s</string>
+    <string name="outage_saved_at">Saved · %1$s</string>
+    <string name="outage_today_date">TODAY · %1$s</string>
+    <string name="outage_choose_button">Choose group</string>
+    <string name="outage_refresh_button">Refresh schedule</string>
+    <string name="outage_find_queue">Find your group by address</string>
+    <string name="outage_source">Official schedule</string>
+    <string name="outage_panel_title">Hourly outages · Khmelnytskoblenergo</string>
+</resources>

@@ -1,6 +1,6 @@
 ﻿# Dotline Widgets
 
-**Nothing-style dot-matrix home screen widgets for any Android phone. Six native widgets, no account, no ads, no analytics. English, Ukrainian and Russian.**
+**Nothing-style dot-matrix home screen widgets for any Android phone. Seven native widgets, no account, no ads, no analytics. English, Ukrainian and Russian.**
 
 [Українська версія](README.uk.md) · [Download the latest APK](../../releases/latest)
 
@@ -24,6 +24,7 @@ Real screenshots from a Galaxy S25 Ultra (One UI). The album cover in the Player
 | **Player**<br><img src="docs/media/widgets/player.png" alt="Player widget" width="360"> | 5x2 | Cover, title, artist and controls of whatever is playing, with a **per-second dot progress bar** (28 dots, the current dot in red), elapsed and remaining time. Idle state resumes your last player. |
 | **Power**<br><img src="docs/media/widgets/power.png" alt="Power widget" width="260"> | 3x1 | Battery percent, 10-dot level bar, charging status and time to full. While it charges, the last dot breathes red. |
 | **Buds** | 2x1 | Left, right and case battery of connected earbuds, with their picture (from the companion app if it is installed, otherwise a pair drawn by this app: stem, round bean or over-ear), or "no earbuds". Missing your model? Open an "Add my earbuds" issue. |
+| **Outages** | 4x2 | Tomorrow’s hourly outages from Khmelnytskoblenergo. Choose your outage group in the app. Tap the widget for the full schedule for today and tomorrow. |
 
 Design rules (dark theme only, one red accent per widget at most) are in [DESIGN_SPEC.md](DESIGN_SPEC.md).
 Requires Android 12 (API 31) or newer. Tested on One UI.
@@ -55,7 +56,7 @@ The built-in updater and Obtainium can coexist; use whichever you prefer.
 | Permission | Why |
 |---|---|
 | Notification access | Reads the active **media sessions** (title, artist, cover, position, play state) for the Player widget, and sends play / pause / next. Notification contents are never read, stored or sent anywhere. |
-| Internet | Weather from Open-Meteo, city search, and the update check against GitHub Releases. No other requests. |
+| Internet | Weather and city search from Open-Meteo, hourly outage schedules from Khmelnytskoblenergo, and app updates from GitHub Releases. |
 | Coarse location (optional) | Only if you tap "Use my location" to pick the weather city. One-shot, foreground only, never stored beyond the city you confirm. |
 | Bluetooth (nearby devices) | Reads the battery level of connected earbuds for the Buds widget. |
 | Install packages | Self-update: downloads the new APK from the GitHub release and hands it to Android's installer, which asks you to confirm. |
@@ -66,9 +67,11 @@ The built-in updater and Obtainium can coexist; use whichever you prefer.
 
 - No analytics, no ads, no crash reporters, no account, no tracking.
 - Your chosen city (name and coordinates) is stored **only on your device**.
+- The outage group is stored on your device. Dotline downloads the same public schedule for every group.
 - The only network requests are:
   - [Open-Meteo](https://open-meteo.com) (weather forecast and city search), containing the city's coordinates or search text;
-  - the GitHub releases API of this repository (update check) with a generic `DotlineWidgets/<version>` User-Agent, and the APK download from the release.
+  - the GitHub releases API of this repository (update check) with a generic `DotlineWidgets/<version>` User-Agent, and the APK download from the release;
+  - the [Khmelnytskoblenergo hourly outage schedule](https://www.hoe.com.ua/page/pogodinni-vidkljuchennja), after you choose an outage group.
 - No device identifiers are sent.
 
 ## Build from source
@@ -85,6 +88,13 @@ Requirements: JDK 17 and the Android SDK (API 35). Android Studio works too (ope
 - `assembleDebug` produces `io.github.oceansde012.dotline.dev` ("Dotline Dev"), which installs next to the release app and has the updater disabled.
 - `assembleRelease` uses the debug key when you build locally. On CI the build refuses to run without the release key.
 - Put `sdk.dir=<path to your Android SDK>` in `local.properties` if `ANDROID_HOME` is not set (the file is git-ignored).
+
+Run the outage parser checks on a computer with the Kotlin CLI and JDK 17.
+
+```
+kotlinc tools/outage-test.kt app/src/main/java/io/github/oceansde012/dotline/OutageSchedule.kt -include-runtime -d outage-test.jar
+java -jar outage-test.jar
+```
 
 ### Release signing and CI
 

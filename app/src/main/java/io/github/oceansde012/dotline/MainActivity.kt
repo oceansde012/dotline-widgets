@@ -125,6 +125,7 @@ class MainActivity : Activity() {
         }
     }
     private var playerPreview: Preview? = null
+    private lateinit var outagePanel: OutagePanel
 
     private var pendingSection: String? = null
     private var pendingInstall = false
@@ -161,6 +162,8 @@ class MainActivity : Activity() {
         content = requireViewById(R.id.content)
         buildHeader()
         buildGallery()
+        outagePanel = OutagePanel(this, ui, ::refreshPreviews)
+        content.addView(outagePanel.view, ui.lp(top = 12))
         buildSetup()
         buildSettings()
         if (BuildConfig.UPDATES_ENABLED) buildUpdates()
@@ -239,6 +242,8 @@ class MainActivity : Activity() {
         ClockWidgetProvider.updateAll(this)
         HeadWidgetProvider.updateAll(this)
         WeatherWidgetProvider.updateAll(this)
+        OutageWidgetProvider.updateAll(this)
+        outagePanel.refresh()
         updateCards()
         refreshPreviews()
         publishPickerPreviews()
@@ -251,6 +256,7 @@ class MainActivity : Activity() {
             pendingSection = null
             when (section) {
                 SECTION_WEATHER -> focusCard(wxCard)
+                OutageWidgetProvider.SECTION -> afterLayout { scroll.smoothScrollTo(0, outagePanel.view.top) }
                 SECTION_BLUETOOTH -> focusCard(btCard)
                 SECTION_NOTIFICATION -> focusCard(notifCard)
             }
@@ -886,6 +892,7 @@ class MainActivity : Activity() {
         addWidgetCard(R.string.gallery_weather, R.string.weather_widget_desc, WeatherWidgetProvider::class.java, 150f, 150f, { c, w, h -> WeatherWidgetProvider.buildPreview(c, w, h) })
         addWidgetCard(R.string.gallery_power, R.string.power_widget_desc, PowerWidgetProvider::class.java, minOf(avail, 230f), 62f, { c, w, h -> PowerWidgetProvider.buildPreview(c, w, h) })
         addWidgetCard(R.string.gallery_buds, R.string.buds_widget_desc, BudsWidgetProvider::class.java, 150f, 62f, { c, w, h -> BudsWidgetProvider.buildPreview(c, w, h) })
+        addWidgetCard(R.string.outage_widget_label, R.string.outage_widget_desc, OutageWidgetProvider::class.java, minOf(avail, 290f), 145f, OutageWidgetProvider::buildPreview)
     }
 
     /**
@@ -904,6 +911,7 @@ class MainActivity : Activity() {
             Triple(WeatherWidgetProvider::class.java, 150f, 150f) to { c: Context, w: Float, h: Float -> WeatherWidgetProvider.buildPreview(c, w, h) },
             Triple(PowerWidgetProvider::class.java, 230f, 62f) to { c: Context, w: Float, h: Float -> PowerWidgetProvider.buildPreview(c, w, h) },
             Triple(BudsWidgetProvider::class.java, 160f, 62f) to { c: Context, w: Float, h: Float -> BudsWidgetProvider.buildPreview(c, w, h) },
+            Triple(OutageWidgetProvider::class.java, 290f, 145f) to { c: Context, w: Float, h: Float -> OutageWidgetProvider.buildPreview(c, w, h) },
         )
         for ((spec, build) in entries) {
             try {

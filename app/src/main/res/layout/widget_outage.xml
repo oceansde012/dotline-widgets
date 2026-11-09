@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tile"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/nd_tile_r22">
+
+    <TextView
+        android:id="@+id/outage_fallback"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="@string/outage_widget_label"
+        android:textColor="@color/nd_fg"
+        android:textSize="13sp" />
+
+    <ImageView android:id="@+id/outage_header" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    <ImageView android:id="@+id/outage_group" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    <ImageView android:id="@+id/outage_timeline" android:layout_width="wrap_content" android:layout_height="wrap_content" android:importantForAccessibility="no" />
+    <ImageView android:id="@+id/outage_ranges" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    <ImageView android:id="@+id/outage_checked" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+
+    <ImageView
+        android:id="@+id/outage_dot"
+        android:layout_width="6dp"
+        android:layout_height="6dp"
+        android:layout_gravity="top|end"
+        android:importantForAccessibility="no"
+        android:src="@drawable/nd_dot"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/zone"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/nd_zone_r22" />
+</FrameLayout>

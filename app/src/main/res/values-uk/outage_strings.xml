@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="outage_widget_label">Відключення</string>
+    <string name="outage_widget_desc">Графік відключень на завтра за підчергою</string>
+    <string name="outage_title_date">ЗАВТРА · %1$s</string>
+    <string name="outage_queue">Підчерга %1$s</string>
+    <string name="outage_choose">Вибери свою підчергу</string>
+    <string name="outage_waiting">Очікуємо на дані</string>
+    <string name="outage_unpublished">Графік ще не опубліковано</string>
+    <string name="outage_unavailable">Графік недоступний</string>
+    <string name="outage_none">Відключень за графіком немає</string>
+    <string name="outage_checked_at">Перевірено %1$s</string>
+    <string name="outage_saved_at">Збережено · %1$s</string>
+    <string name="outage_today_date">СЬОГОДНІ · %1$s</string>
+    <string name="outage_choose_button">Вибрати підчергу</string>
+    <string name="outage_refresh_button">Оновити графік</string>
+    <string name="outage_find_queue">Знайти підчергу за адресою</string>
+    <string name="outage_source">Офіційний графік</string>
+    <string name="outage_panel_title">Погодинні відключення · Хмельницькобленерго</string>
+</resources>

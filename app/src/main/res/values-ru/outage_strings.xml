@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="outage_widget_label">Отключения</string>
+    <string name="outage_widget_desc">График отключений на завтра по группе</string>
+    <string name="outage_title_date">ЗАВТРА · %1$s</string>
+    <string name="outage_queue">Группа %1$s</string>
+    <string name="outage_choose">Выбери свою группу</string>
+    <string name="outage_waiting">Ждём данные</string>
+    <string name="outage_unpublished">График ещё не опубликован</string>
+    <string name="outage_unavailable">График недоступен</string>
+    <string name="outage_none">Отключений по графику нет</string>
+    <string name="outage_checked_at">Проверено %1$s</string>
+    <string name="outage_saved_at">Сохранено · %1$s</string>
+    <string name="outage_today_date">СЕГОДНЯ · %1$s</string>
+    <string name="outage_choose_button">Выбрать группу</string>
+    <string name="outage_refresh_button">Обновить график</string>
+    <string name="outage_find_queue">Найти группу по адресу</string>
+    <string name="outage_source">Официальный график</string>
+    <string name="outage_panel_title">Почасовые отключения · Хмельницкоблэнерго</string>
+</resources>

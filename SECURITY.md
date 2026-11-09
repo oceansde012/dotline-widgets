@@ -12,6 +12,6 @@ You will get a reply as soon as possible; this is a hobby project, so please be 
   misuse or over-reach of any of them are welcome.
 - Releases are signed with one release key. APKs from anywhere other than this repository's
   Releases page are not official.
-- The app only talks to Open-Meteo (weather, city search) and the GitHub releases API (update check).
+- The app accesses Open-Meteo for weather and city search, GitHub Releases for updates, and Khmelnytskoblenergo for the public hourly outage schedule.
 
 Only the latest release is supported.

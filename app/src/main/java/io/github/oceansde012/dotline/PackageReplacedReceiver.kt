@@ -13,6 +13,7 @@ class PackageReplacedReceiver : BroadcastReceiver() {
         MediaTracker.ensureStarted(a)
         MediaTracker.render(a, forceFull = true)
         WeatherWidgetProvider.updateAll(a)
+        OutageWidgetProvider.reschedule(a)
         HeadWidgetProvider.updateAll(a)
         BudsWidgetProvider.updateAll(a)
         BudsRepo.forgetTried()
