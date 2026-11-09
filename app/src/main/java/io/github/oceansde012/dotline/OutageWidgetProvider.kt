@@ -13,6 +13,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.os.Bundle
+import android.text.TextPaint
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
@@ -46,6 +47,7 @@ class OutageWidgetProvider : AppWidgetProvider() {
     companion object {
         const val SECTION = "outages"
         private const val ROLLOVER = "io.github.oceansde012.dotline.OUTAGE_ROLLOVER"
+        private const val AXIS_HEIGHT = 15f
         private val OFF_COLOR = 0xfff4978f.toInt()
         private val ON_COLOR = 0xffa6dbb2.toInt()
         private val OFF_BAR = 0xffd66b61.toInt()
@@ -143,7 +145,8 @@ class OutageWidgetProvider : AppWidgetProvider() {
             rv.setViewVisibility(R.id.outage_fallback, View.GONE)
             rv.setOnClickPendingIntent(R.id.zone, Taps.app(ctx, 122, SECTION))
             for (id in listOf(R.id.outage_off_label, R.id.outage_on_label, R.id.outage_on_time, R.id.outage_divider,
-                    R.id.outage_day_bar, R.id.outage_second_bar, R.id.outage_today_detail, R.id.outage_tomorrow_detail)) {
+                    R.id.outage_day_bar, R.id.outage_second_bar, R.id.outage_today_detail, R.id.outage_tomorrow_detail,
+                    R.id.outage_today_ranges, R.id.outage_tomorrow_ranges)) {
                 rv.setViewVisibility(id, View.GONE)
             }
 
@@ -151,6 +154,21 @@ class OutageWidgetProvider : AppWidgetProvider() {
             val width = (w - 2f * pad).coerceAtLeast(64f)
             val wide = width >= 200f && h >= 52f
             val short = h < 48f
+            val nameWidth = (width * 0.35f).coerceIn(116f, 124f)
+            val rangesWidth = width - nameWidth - 8f
+            fun bandText(day: OutageRepo.Day): String {
+                val text = status(ctx, day, compact = true)
+                return if (day.windows.isNullOrEmpty()) text else ctx.getString(R.string.outage_off_short, text)
+            }
+            val bandPaint = if (width >= 270f && h >= 140f) TextPaint().apply {
+                typeface = ctx.resources.getFont(R.font.label_medium)
+                textSize = 11f
+                letterSpacing = 0.04f
+            } else null
+            fun bandLines(day: OutageRepo.Day): Int =
+                if ((bandPaint?.measureText(bandText(day)) ?: 0f) + 2f <= rangesWidth) 1 else 2
+            val expanded = bandPaint != null &&
+                h >= 140f + 14f * listOfNotNull(f.today, f.tomorrow).count { bandLines(it) == 2 }
             val saved = listOfNotNull(f.today, f.tomorrow).any { it.windows != null && it.stale }
             val useTomorrow = f.today?.windows == null && f.tomorrow?.windows != null
             val displayedDate = if (useTomorrow) f.date.plusDays(1) else f.date
@@ -175,7 +193,12 @@ class OutageWidgetProvider : AppWidgetProvider() {
                     minSizeDp = minSize, maxLines = lines).hDp
             }
 
-            var y = put(R.id.outage_header, title, pad, 0f, if (short) 8.5f else 10f, color = Nd.DIM) + 3f
+            val headerSize = when {
+                expanded -> 12f
+                short -> 9f
+                else -> 11f
+            }
+            var y = put(R.id.outage_header, title, pad, 0f, headerSize, color = Nd.DIM) + 4f
             val next = f.next
             if (next == null) {
                 val message = emptyForecast(ctx, f)
@@ -193,13 +216,29 @@ class OutageWidgetProvider : AppWidgetProvider() {
                 if (wide && h >= 100f) {
                     val column = (width - 12f) / 2f
                     val right = pad + column + 12f
-                    val offHeight = put(R.id.outage_off_label, offLabel, pad, y, 10f, column, OFF_COLOR)
-                    val onHeight = put(R.id.outage_on_label, onLabel, right, y, 10f, column, restorationColor)
+                    fun caption(label: String, minute: Int?): String =
+                        if (minute != null && minute >= OutageSchedule.MINUTES_PER_DAY) {
+                            "$label · ${dateLabel(f.date.plusDays(1))}"
+                        } else label
+
+                    val captionSize = if (expanded) 12f else 11f
+                    val offHeight = put(R.id.outage_off_label, caption(offLabel, next.offAt), pad, y, captionSize, column, Nd.FG, 10f)
+                    val onHeight = put(R.id.outage_on_label, caption(onLabel, next.onAt), right, y, captionSize, column, Nd.FG, 10f)
                     y += maxOf(offHeight, onHeight) + 2f
-                    val size = if (h >= 64f) 19f else 16f
-                    val offTimeHeight = put(R.id.outage_off_time, off, pad, y, size, column, minSize = 11f)
-                    val onTimeHeight = put(R.id.outage_on_time, on ?: ctx.getString(R.string.outage_time_unknown),
-                        right, y, if (on == null) 13f else size, column, minSize = 9f)
+                    val heroHeight = ((h - 140f) * 0.2f + 24f).coerceIn(24f, 29f)
+                    val pitch = DotText.pitchFor("00:00", column, heroHeight)
+                    fun value(id: Int, minute: Int?, x: Float): Float {
+                        if (minute == null) return put(id, ctx.getString(R.string.outage_time_unknown), x, y,
+                            if (expanded) 17f else 14f, column, Nd.DIM, 11f)
+                        val text = clockLabel(minute)
+                        if (!expanded) return put(id, text, x, y, 21f, column, minSize = 16f)
+                        val art = DotText.art(text, pitch, ctx.resources.displayMetrics.density)
+                        positions += Triple(id, x, y)
+                        rv.putLabel(id, art, text)
+                        return art.hDp
+                    }
+                    val offTimeHeight = value(R.id.outage_off_time, next.offAt, pad)
+                    val onTimeHeight = value(R.id.outage_on_time, next.onAt, right)
                     y += maxOf(offTimeHeight, onTimeHeight)
                 } else {
                     val fullLabels = wide && width >= 270f
@@ -212,9 +251,9 @@ class OutageWidgetProvider : AppWidgetProvider() {
                         val rightHeight = put(R.id.outage_on_time, onText, pad + column + 12f, y, 15f, column, restorationColor, 9f)
                         y += maxOf(leftHeight, rightHeight)
                     } else {
-                        val size = if (short) 8.5f else 11f
-                        y += put(R.id.outage_off_time, offText, pad, y, size, color = OFF_COLOR) + 1f
-                        y += put(R.id.outage_on_time, onText, pad, y, size, color = restorationColor)
+                        val size = if (short) 9f else 12f
+                        y += put(R.id.outage_off_time, offText, pad, y, size, color = OFF_COLOR, minSize = 9f) + 1f
+                        y += put(R.id.outage_on_time, onText, pad, y, size, color = restorationColor, minSize = 9f)
                     }
                 }
                 if (wide) {
@@ -224,12 +263,11 @@ class OutageWidgetProvider : AppWidgetProvider() {
                 }
             }
 
-            fun putBar(id: Int, day: OutageRepo.Day?, gap: Float) {
-                val track = if (short) 3f else 5f
+            fun putBar(id: Int, day: OutageRepo.Day?, gap: Float, track: Float = if (short) 3f else 5f, showAxis: Boolean = wide) {
                 val available = h - y - gap
                 if (available < track) return
-                val axes = wide && available >= track + 13f
-                val barHeight = track + if (axes) 13f else 0f
+                val axes = showAxis && available >= track + AXIS_HEIGHT
+                val barHeight = track + if (axes) AXIS_HEIGHT else 0f
                 y += gap
                 rv.setViewVisibility(id, View.VISIBLE)
                 rv.setImageViewBitmap(id, dayBar(ctx, width, track, day?.windows, axes))
@@ -237,7 +275,7 @@ class OutageWidgetProvider : AppWidgetProvider() {
                 positions += Triple(id, pad, y)
                 y += barHeight
             }
-            if (f.queue != null) {
+            if (f.queue != null && !expanded) {
                 putBar(R.id.outage_day_bar, displayedDay, if (short) 2f else 4f)
                 if (h < 124f && displayedDay != null) description += date + " · " + status(ctx, displayedDay)
             }
@@ -251,12 +289,38 @@ class OutageWidgetProvider : AppWidgetProvider() {
                 val lines = if (h >= 140f) 2 else 1
                 if (h - y >= 12f) y += put(id, detail, pad, y, 10f, color = Nd.DIM, lines = lines)
             }
-            if (h >= 124f && f.today != null) {
-                dayLine(R.id.outage_today_detail, R.string.outage_today_date, f.date, f.today)
-            }
-            if (h >= 88f && f.tomorrow != null) {
-                dayLine(R.id.outage_tomorrow_detail, R.string.outage_title_date, f.date.plusDays(1), f.tomorrow)
-                if (h >= 124f && !useTomorrow) putBar(R.id.outage_second_bar, f.tomorrow, 3f)
+            if (expanded && f.today != null && f.tomorrow != null) {
+                val rangesX = pad + nameWidth + 8f
+                fun dayBand(nameId: Int, rangesId: Int, barId: Int, name: String, day: OutageRepo.Day, last: Boolean) {
+                    val value = status(ctx, day, compact = true)
+                    val ranges = bandText(day)
+                    val nameHeight = put(nameId, name, pad, y, 12f, nameWidth, Nd.DIM, 11f)
+                    val rangesHeight = put(rangesId, ranges, rangesX, y, 12f, rangesWidth, minSize = 11f, lines = bandLines(day))
+                    description += "$name · " + if (day.windows.isNullOrEmpty()) value else ctx.getString(R.string.outage_off_ranges, value)
+                    y += maxOf(nameHeight, rangesHeight)
+                    putBar(barId, day, 4f, track = 7f, showAxis = last)
+                }
+                y += 8f
+                dayBand(R.id.outage_today_detail, R.id.outage_today_ranges, R.id.outage_day_bar,
+                    ctx.getString(R.string.outage_today_date, dateLabel(f.date)), f.today, last = false)
+                val tomorrowIndex = positions.size
+                y += 8f
+                dayBand(R.id.outage_tomorrow_detail, R.id.outage_tomorrow_ranges, R.id.outage_second_bar,
+                    ctx.getString(R.string.outage_title_date, dateLabel(f.date.plusDays(1))), f.tomorrow, last = true)
+                val extraGap = (h - y - 20f).coerceIn(0f, 12f)
+                for (index in tomorrowIndex until positions.size) {
+                    val (id, x, offset) = positions[index]
+                    positions[index] = Triple(id, x, offset + extraGap)
+                }
+                y += extraGap
+            } else {
+                if (h >= 124f && f.today != null) {
+                    dayLine(R.id.outage_today_detail, R.string.outage_today_date, f.date, f.today)
+                }
+                if (h >= 88f && f.tomorrow != null) {
+                    dayLine(R.id.outage_tomorrow_detail, R.string.outage_title_date, f.date.plusDays(1), f.tomorrow)
+                    if (h >= 124f && !useTomorrow) putBar(R.id.outage_second_bar, f.tomorrow, 3f)
+                }
             }
 
             val top = ((h - y) / 2f).coerceAtLeast(0f)
@@ -269,7 +333,7 @@ class OutageWidgetProvider : AppWidgetProvider() {
             val scale = ctx.resources.displayMetrics.density.coerceAtMost(3f)
             val pixels = (width * scale).roundToInt().coerceAtLeast(1)
             val trackPx = track * scale
-            val height = ((track + if (axes) 13f else 0f) * scale).roundToInt().coerceAtLeast(1)
+            val height = ((track + if (axes) AXIS_HEIGHT else 0f) * scale).roundToInt().coerceAtLeast(1)
             val bitmap = Bitmap.createBitmap(pixels, height, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -302,20 +366,24 @@ class OutageWidgetProvider : AppWidgetProvider() {
             canvas.restore()
             if (axes) {
                 paint.color = Nd.DIM
-                paint.textSize = 8f * scale
+                paint.textSize = 10f * scale
                 paint.typeface = ctx.resources.getFont(R.font.label_regular)
                 for ((i, label) in listOf("00", "06", "12", "18", "24").withIndex()) {
                     val textWidth = paint.measureText(label)
                     val x = (pixels * i / 4f - textWidth / 2f).coerceIn(0f, (pixels - textWidth).coerceAtLeast(0f))
-                    canvas.drawText(label, x, trackPx + 10f * scale, paint)
+                    canvas.drawText(label, x, trackPx + 12f * scale, paint)
                 }
             }
             return bitmap
         }
 
-        private fun timeLabel(date: LocalDate, minute: Int): String {
+        private fun clockLabel(minute: Int): String {
             val local = minute % OutageSchedule.MINUTES_PER_DAY
-            val time = "%02d:%02d".format(Locale.ROOT, local / 60, local % 60)
+            return "%02d:%02d".format(Locale.ROOT, local / 60, local % 60)
+        }
+
+        private fun timeLabel(date: LocalDate, minute: Int): String {
+            val time = clockLabel(minute)
             return if (minute < OutageSchedule.MINUTES_PER_DAY) time else dateLabel(date.plusDays(1)) + " " + time
         }
 
