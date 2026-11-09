@@ -882,7 +882,7 @@ class MainActivity : Activity() {
         section(R.string.sec_widgets)
         val avail = (resources.configuration.screenWidthDp - 40).toFloat().coerceAtLeast(200f)
         val wide = minOf(avail, 380f)
-        addWidgetCard(R.string.gallery_player, R.string.player_widget_desc, PlayerWidgetProvider::class.java, wide, 160f) { c, w, h ->
+        addWidgetCard(R.string.gallery_player, R.string.player_widget_desc, PlayerWidgetProvider::class.java, wide, 64f) { c, w, h ->
             PlayerRenderer.full(c, w, h, MediaTracker.track)   // the real state, never a sample
         }.also { playerPreview = it }
         addWidgetCard(R.string.gallery_head, R.string.head_widget_desc, HeadWidgetProvider::class.java, wide, 56f, { c, w, h -> HeadWidgetProvider.buildPreview(c, w, h) })
@@ -903,7 +903,7 @@ class MainActivity : Activity() {
         val dm = resources.displayMetrics
         fun dp(px: Int) = px / dm.density
         val entries = listOf(
-            Triple(PlayerWidgetProvider::class.java, 380f, 165f) to { c: Context, w: Float, h: Float -> PlayerRenderer.full(c, w, h, MediaTracker.track) },
+            Triple(PlayerWidgetProvider::class.java, 380f, 64f) to { c: Context, w: Float, h: Float -> PlayerRenderer.full(c, w, h, MediaTracker.track) },
             Triple(HeadWidgetProvider::class.java, 380f, 58f) to { c: Context, w: Float, h: Float -> HeadWidgetProvider.buildPreview(c, w, h) },
             Triple(ClockWidgetProvider::class.java, 230f, 190f) to { c: Context, w: Float, h: Float -> ClockWidgetProvider.buildPreview(c, w, h) },
             Triple(WeatherWidgetProvider::class.java, 150f, 150f) to { c: Context, w: Float, h: Float -> WeatherWidgetProvider.buildPreview(c, w, h) },

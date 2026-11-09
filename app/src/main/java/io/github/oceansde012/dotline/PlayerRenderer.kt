@@ -29,7 +29,7 @@ object PlayerRenderer {
     private val controlsCache = HashMap<List<Any>, Bitmap>()
 
     fun full(ctx: Context, mgr: AppWidgetManager, id: Int, t: Track?): RemoteViews {
-        val sz = WidgetSize.of(ctx, mgr, id, 380f, 165f)
+        val sz = WidgetSize.of(ctx, mgr, id, 380f, 64f)
         return full(ctx, sz.width, sz.height, t)
     }
 
@@ -51,9 +51,11 @@ object PlayerRenderer {
         rv.setTextViewTextSize(R.id.artist, DIP, if (idle) g.artistSize - 1f else g.artistSize)
         rv.setTextViewTextSize(R.id.source, DIP, g.sourceSize)
         val lc = Lang.wrap(ctx)
+        val showBar = t?.showProgress == true && (!g.compact || h >= 48f)
+        var barY = g.groupY
         if (t == null) {
-            val blockH = g.titleSize * 1.25f + 3f + (g.artistSize - 1f) * 1.25f
-            rv.place(R.id.text_block, g.colX, (g.h - blockH) / 2f, g.idleTextW, blockH)
+            val blockH = 6f + g.titleSize * 1.25f + (g.artistSize - 1f) * 1.25f
+            rv.place(R.id.text_block, g.colX, (g.h - blockH) / 2f, if (g.compact) g.compactTextW else g.idleTextW, blockH)
             rv.setViewVisibility(R.id.source, View.GONE)
             rv.setTextViewText(R.id.title, lc.getString(if (access) R.string.not_playing else R.string.player_allow))
             rv.setTextColor(R.id.title, if (access) Nd.DIM else Nd.FG)
@@ -61,18 +63,26 @@ object PlayerRenderer {
             rv.setTextColor(R.id.artist, if (access) Nd.FAINT else Nd.DIM)
             rv.setViewVisibility(R.id.artist, View.VISIBLE)
         } else {
-            rv.place(R.id.text_block, g.colX, g.pad, g.colW, g.blockH)
-            rv.setViewVisibility(R.id.source, View.VISIBLE)
+            if (g.compact) {
+                val blockH = 3f + g.titleSize * 1.25f + if (t.artist.isEmpty()) 0f else 3f + g.artistSize * 1.25f
+                val progressH = if (showBar) 3f + g.barH else 0f
+                val top = ((h - blockH - progressH) / 2f).coerceAtLeast(0f)
+                rv.place(R.id.text_block, g.colX, top, g.compactTextW, blockH)
+                barY = top + blockH + 3f
+            } else {
+                rv.place(R.id.text_block, g.colX, g.pad, g.colW, g.blockH)
+            }
+            rv.setViewVisibility(R.id.source, if (g.compact) View.GONE else View.VISIBLE)
             rv.setTextViewText(R.id.source, t.appName.uppercase())
             rv.setTextViewText(R.id.title, t.title)
             rv.setTextColor(R.id.title, Nd.FG)
             rv.setTextViewText(R.id.artist, t.artist)
+            rv.setTextColor(R.id.artist, Nd.DIM)
             rv.setViewVisibility(R.id.artist, if (t.artist.isEmpty()) View.GONE else View.VISIBLE)
         }
 
         // progress group, centred between the title block and the controls
-        val showBar = t != null && t.showProgress
-        rv.place(R.id.bar, g.colX, g.groupY, g.colW, g.barH)
+        rv.place(R.id.bar, g.colX, barY, g.barW, g.barH)
         rv.setViewVisibility(R.id.bar, if (showBar) View.VISIBLE else View.GONE)
         rv.place(R.id.time_row, g.colX, g.groupY + g.barH + 4f, g.colW, g.timeH)
         rv.setTextViewTextSize(R.id.elapsed, DIP, g.timeSize)

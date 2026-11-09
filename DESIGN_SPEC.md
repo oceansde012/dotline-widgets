@@ -57,7 +57,9 @@ Typography (3 roles only):
   - On widget add / app open: immediate refresh.
   - Re-render (no network) every minute is NOT needed; only the stale label depends on time, computed at render.
 
-### 2.4 Player — 5×2 (`PlayerWidgetProvider`, restyle; keep `MediaTracker` engine)
+### 2.4 Player — 5×1 or 5×2 (`PlayerWidgetProvider`)
+The default 5×1 layout places the cover, track details with a dot progress bar, and playback controls in one row. The expanded layout shows the source and track times.
+
 Keep the existing engine (session picking, 80ms debounce, screen-on tick, partial updates). Changes:
 - Layout: cover left (square, radius `R−P`, height `H − 2P`), right column: title (Title, 1 line, ellipsize) + artist (dim) top; **dot progress bar** middle; bottom row: time Label `0:56` left and `−0:59` right, controls right.
 - **Dot progress bar**: N = 28 dots in one row (width of the right column), lit = fg, unlit = `dot_off`, the current head dot = **accent** (this is the player's single red element). Rendered as one tiny bitmap (≤ 600×16 px ARGB ≈ 38 KB) per tick, pushed with `partiallyUpdateAppWidget` together with the time text. Ticks every second while playing + screen on (existing tick logic). Bar also covers sub-dot progress by fading the head dot's left neighbour.

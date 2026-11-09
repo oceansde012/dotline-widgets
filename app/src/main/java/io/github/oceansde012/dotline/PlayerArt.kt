@@ -16,29 +16,42 @@ import kotlin.math.sqrt
 /**
  * Player geometry in dp (DESIGN_SPEC.md 2.4). P and R come from [Tile].
  *
- * Playing / paused: cover = H - 2P square at the left; the right column is laid out on three lines of one
+ * One row: cover, track details with progress, then controls.
+ * Playing / paused in two rows: cover = H - 2P square at the left; the right column is laid out on three lines of one
  * grid: title block top-aligned to the cover top, progress group centred between block and controls,
  * controls bottom-aligned to the cover bottom.
  * Idle: a compact row, vertically centred: 56%-height cover, title + hint, round play button on the right.
  */
 class PlayerGeom(val w: Float, val h: Float, val idle: Boolean) {
+    val compact = h < 100f
     val pad = Tile.pad(h)
     val radius = Tile.radius(h)
-    val cover = if (idle) (0.56f * h).coerceAtLeast(36f) else (h - 2f * pad).coerceAtLeast(40f)
-    val coverY = if (idle) (h - cover) / 2f else pad
-    val colX = pad + cover + 14f
+    val cover = when {
+        compact -> (h - 2f * pad).coerceAtMost(56f)
+        idle -> (0.56f * h).coerceAtLeast(36f)
+        else -> (h - 2f * pad).coerceAtLeast(40f)
+    }
+    val coverY = if (idle || compact) (h - cover) / 2f else pad
+    val colX = pad + cover + if (compact) 9f else 14f
     val colW = (w - colX - pad).coerceAtLeast(60f)
-    val zone = if (idle) 48f else (colW / 3f).coerceIn(40f, 48f)   // touch zone of each control
+    val zone = when {
+        compact && idle -> min(44f, h)
+        compact -> ((colW - 64f) / 3f).coerceIn(32f, 44f).coerceAtMost(h)
+        idle -> 48f
+        else -> (colW / 3f).coerceIn(40f, 48f)
+    }
     val clusterW = if (idle) zone else zone * 3f
     val ctlX = w - pad - clusterW
-    val ctlY = if (idle) (h - zone) / 2f else h - (pad - 4f).coerceAtLeast(0f) - zone
-    val titleSize = (0.1f * h).coerceIn(14f, 17f)
-    val artistSize = (0.075f * h).coerceIn(12f, 13f)
+    val ctlY = if (idle || compact) (h - zone) / 2f else h - (pad - 4f).coerceAtLeast(0f) - zone
+    val titleSize = if (compact) (0.23f * h).coerceIn(12f, 15f) else (0.1f * h).coerceIn(14f, 17f)
+    val artistSize = if (compact) (0.17f * h).coerceIn(10f, 12f) else (0.075f * h).coerceIn(12f, 13f)
     val sourceSize = 9.5f
     val showTimes = h >= 140f
     val timeSize = 11f
     val timeH = 14f
-    val barH = colW / PlayerArt.DOTS                  // dot pitch == bar height, dots stay round
+    val compactTextW = (ctlX - colX - 5f).coerceAtLeast(1f)
+    val barW = if (compact) min(compactTextW, PlayerArt.DOTS * 6f) else colW
+    val barH = barW / PlayerArt.DOTS                  // dot pitch == bar height, dots stay round
     val groupH = barH + (if (showTimes) 4f + timeH else 0f)
     val blockH = sourceSize * 1.25f + 3f + titleSize * 1.25f + 3f + artistSize * 1.25f
     val blockBottom = pad + blockH
