@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="outage_widget_label">Outages</string>
-    <string name="outage_widget_desc">Tomorrow’s outage schedule by group</string>
+    <string name="outage_widget_desc">Scheduled power-off and restoration times</string>
     <string name="outage_title_date">TOMORROW · %1$s</string>
     <string name="outage_queue">Group %1$s</string>
     <string name="outage_choose">Choose your outage group</string>
@@ -22,4 +22,18 @@
     <string name="outage_short_unavailable">Unavailable</string>
     <string name="outage_short_unpublished">No schedule yet</string>
     <string name="outage_short_waiting">Awaiting data</string>
+    <string name="outage_widget_heading">SCHEDULE · %1$s · GROUP %2$s</string>
+    <string name="outage_widget_saved">SAVED · %1$s · GROUP %2$s</string>
+    <string name="outage_off_label">POWER OFF FROM</string>
+    <string name="outage_on_label">POWER BACK FROM</string>
+    <string name="outage_time_unknown">Unknown</string>
+    <string name="outage_off_short">Off %1$s</string>
+    <string name="outage_on_short">On %1$s</string>
+    <string name="outage_on_unknown">Restoration time unknown</string>
+    <string name="outage_on_unknown_short">On time unknown</string>
+    <string name="outage_off_ranges">Off %1$s</string>
+    <string name="outage_no_more_known">No more outages through tomorrow</string>
+    <string name="outage_no_more_today">No more outages today</string>
+    <string name="outage_no_tomorrow">No outages tomorrow</string>
+    <string name="outage_only_tomorrow">TODAY UNKNOWN · TOMORROW %1$s · %2$s</string>
 </resources>

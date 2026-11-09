@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="outage_widget_label">Отключения</string>
-    <string name="outage_widget_desc">График отключений на завтра по группе</string>
+    <string name="outage_widget_desc">Когда по графику отключат и вернут свет</string>
     <string name="outage_title_date">ЗАВТРА · %1$s</string>
     <string name="outage_queue">Группа %1$s</string>
     <string name="outage_choose">Выбери свою группу</string>
@@ -17,9 +17,23 @@
     <string name="outage_find_queue">Найти группу по адресу</string>
     <string name="outage_source">Официальный график</string>
     <string name="outage_panel_title">Почасовые отключения · Хмельницкоблэнерго</string>
-    <string name="outage_compact_saved">КЭШ</string>
+    <string name="outage_compact_saved">СОХР.</string>
     <string name="outage_short_none">Отключений нет</string>
     <string name="outage_short_unavailable">Недоступно</string>
     <string name="outage_short_unpublished">Графика ещё нет</string>
     <string name="outage_short_waiting">Ждём данные</string>
+    <string name="outage_widget_heading">ГРАФИК · %1$s · ГРУППА %2$s</string>
+    <string name="outage_widget_saved">СОХРАНЕНО · %1$s · ГРУППА %2$s</string>
+    <string name="outage_off_label">БЕЗ СВЕТА С</string>
+    <string name="outage_on_label">СВЕТ С</string>
+    <string name="outage_time_unknown">Неизвестно</string>
+    <string name="outage_off_short">Без %1$s</string>
+    <string name="outage_on_short">Свет %1$s</string>
+    <string name="outage_on_unknown">Время возврата света неизвестно</string>
+    <string name="outage_on_unknown_short">Время неизвестно</string>
+    <string name="outage_off_ranges">Без света %1$s</string>
+    <string name="outage_no_more_known">До конца завтра отключений больше нет</string>
+    <string name="outage_no_more_today">До конца дня без отключений</string>
+    <string name="outage_no_tomorrow">Завтра без отключений</string>
+    <string name="outage_only_tomorrow">СЕГОДНЯ НЕТ ДАННЫХ · ЗАВТРА %1$s · %2$s</string>
 </resources>

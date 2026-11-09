@@ -84,8 +84,7 @@ internal class OutagePanel(
         val next = date.plusDays(1)
         tomorrow.text = activity.getString(R.string.outage_title_date, OutageWidgetProvider.dateLabel(next))
         today.text = activity.getString(R.string.outage_today_date, OutageWidgetProvider.dateLabel(date))
-        val nextDay = queue?.let { OutageRepo.day(activity, next, it) }
-        val thisDay = queue?.let { OutageRepo.day(activity, date, it) }
+        val (thisDay, nextDay) = queue?.let { OutageRepo.days(activity, date, it) } ?: (null to null)
         tomorrowHours.text = hours(nextDay)
         todayHours.text = hours(thisDay)
         tomorrowChecked.text = checked(nextDay)

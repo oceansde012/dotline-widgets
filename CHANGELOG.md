@@ -4,6 +4,7 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- Show the next power-off and restoration times with a full-day timeline. Expanding the outage widget also shows the published hours for today and tomorrow.
 - The Player widget fits in one row. The cover, track details, and playback controls stay visible, and expanding the widget shows the track times.
 
 ## 1.0.120

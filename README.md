@@ -24,7 +24,7 @@ Real screenshots from a Galaxy S25 Ultra (One UI). The album cover in the Player
 | **Player**<br><img src="docs/media/widgets/player.png" alt="Expanded Player widget" width="360"> | 5x1 | Cover, title, artist, controls and a **live dot progress bar** in one row. Expand to 5x2 to see elapsed and remaining time. |
 | **Power**<br><img src="docs/media/widgets/power.png" alt="Power widget" width="260"> | 3x1 | Battery percent, 10-dot level bar, charging status and time to full. While it charges, the last dot breathes red. |
 | **Buds** | 2x1 | Left, right and case battery of connected earbuds, with their picture (from the companion app if it is installed, otherwise a pair drawn by this app: stem, round bean or over-ear), or "no earbuds". Missing your model? Open an "Add my earbuds" issue. |
-| **Outages** | 2x1 | Tomorrow’s hourly outages from Khmelnytskoblenergo. Resize it to show more hours or make it taller for the timeline. Tap for the full schedule. |
+| **Outages** | 5x1 | Next power-off and restoration times from Khmelnytskoblenergo, with a timeline for all 24 hours. Green marks scheduled power and red marks outages. Expand for today's and tomorrow's hours. |
 
 Design rules (dark theme only, one red accent per widget at most) are in [DESIGN_SPEC.md](DESIGN_SPEC.md).
 Requires Android 12 (API 31) or newer. Tested on One UI.

@@ -11,7 +11,11 @@ internal data class OutageWindow(val start: Int, val end: Int) {
     private fun time(minutes: Int): String = "%02d:%02d".format(Locale.ROOT, minutes / 60, minutes % 60)
 }
 
+/** Minutes relative to today's midnight. A null restoration means the published schedule ends first. */
+internal data class OutageTransition(val offAt: Int, val onAt: Int?)
+
 internal object OutageSchedule {
+    const val MINUTES_PER_DAY = 24 * 60
     val zone: ZoneId = runCatching { ZoneId.of("Europe/Kyiv") }.getOrElse { ZoneId.of("Europe/Kiev") }
     val queues = (1..6).flatMap { group -> listOf("$group.1", "$group.2") }
 
@@ -39,6 +43,26 @@ internal object OutageSchedule {
     )
 
     fun date(now: Instant = Instant.now()): LocalDate = now.atZone(zone).toLocalDate()
+
+    fun nextOutage(
+        minute: Int, today: List<OutageWindow>?, tomorrow: List<OutageWindow>?,
+    ): OutageTransition? {
+        val firstTomorrow = tomorrow?.firstOrNull()
+        val currentOrNext = today?.firstOrNull { it.end > minute }
+        if (currentOrNext == null) {
+            val next = firstTomorrow ?: return null
+            val restoration = if (next.end < MINUTES_PER_DAY) MINUTES_PER_DAY + next.end else null
+            return OutageTransition(MINUTES_PER_DAY + next.start, restoration)
+        }
+        val restoration = when {
+            currentOrNext.end < MINUTES_PER_DAY -> currentOrNext.end
+            tomorrow == null -> null
+            firstTomorrow?.start != 0 -> MINUTES_PER_DAY
+            firstTomorrow.end < MINUTES_PER_DAY -> MINUTES_PER_DAY + firstTomorrow.end
+            else -> null
+        }
+        return OutageTransition(currentOrNext.start, restoration)
+    }
 
     /** The provider inserts revisions above previous versions. Only read the first block for a date. */
     fun parse(html: String, dates: Set<LocalDate>): Map<LocalDate, Map<String, List<OutageWindow>>> {

@@ -180,6 +180,7 @@ object Ticker {
         val a = ctx.applicationContext
         ClockWidgetProvider.updateAll(a)
         HeadWidgetProvider.updateAll(a, onlyIfDateChanged = true)
+        OutageWidgetProvider.refreshIfDue(a)
         arm(a)
     }
 }

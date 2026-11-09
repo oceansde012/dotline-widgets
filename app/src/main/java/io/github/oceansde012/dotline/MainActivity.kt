@@ -890,7 +890,7 @@ class MainActivity : Activity() {
         addWidgetCard(R.string.gallery_weather, R.string.weather_widget_desc, WeatherWidgetProvider::class.java, 150f, 150f, { c, w, h -> WeatherWidgetProvider.buildPreview(c, w, h) })
         addWidgetCard(R.string.gallery_power, R.string.power_widget_desc, PowerWidgetProvider::class.java, minOf(avail, 230f), 62f, { c, w, h -> PowerWidgetProvider.buildPreview(c, w, h) })
         addWidgetCard(R.string.gallery_buds, R.string.buds_widget_desc, BudsWidgetProvider::class.java, 150f, 62f, { c, w, h -> BudsWidgetProvider.buildPreview(c, w, h) })
-        addWidgetCard(R.string.outage_widget_label, R.string.outage_widget_desc, OutageWidgetProvider::class.java, 150f, 62f, OutageWidgetProvider::buildPreview)
+        addWidgetCard(R.string.outage_widget_label, R.string.outage_widget_desc, OutageWidgetProvider::class.java, wide, 66f, OutageWidgetProvider::buildPreview)
     }
 
     /**
@@ -909,7 +909,7 @@ class MainActivity : Activity() {
             Triple(WeatherWidgetProvider::class.java, 150f, 150f) to { c: Context, w: Float, h: Float -> WeatherWidgetProvider.buildPreview(c, w, h) },
             Triple(PowerWidgetProvider::class.java, 230f, 62f) to { c: Context, w: Float, h: Float -> PowerWidgetProvider.buildPreview(c, w, h) },
             Triple(BudsWidgetProvider::class.java, 160f, 62f) to { c: Context, w: Float, h: Float -> BudsWidgetProvider.buildPreview(c, w, h) },
-            Triple(OutageWidgetProvider::class.java, 150f, 62f) to { c: Context, w: Float, h: Float -> OutageWidgetProvider.buildPreview(c, w, h) },
+            Triple(OutageWidgetProvider::class.java, 380f, 66f) to { c: Context, w: Float, h: Float -> OutageWidgetProvider.buildPreview(c, w, h) },
         )
         for ((spec, build) in entries) {
             try {

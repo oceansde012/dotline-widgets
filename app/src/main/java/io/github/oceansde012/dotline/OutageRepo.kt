@@ -30,7 +30,8 @@ internal object OutageRepo {
         val checkedAt: Long,
         val failed: Boolean,
     ) {
-        val stale: Boolean get() = failed || System.currentTimeMillis() - checkedAt !in 0..STALE_AGE
+        val staleAt: Long get() = checkedAt + STALE_AGE + 1
+        val stale: Boolean get() = failed || System.currentTimeMillis() !in checkedAt until staleAt
     }
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("outage_schedule", Context.MODE_PRIVATE)
@@ -43,8 +44,12 @@ internal object OutageRepo {
         prefs(ctx).edit().putString("queue", queue).apply()
     }
 
-    fun day(ctx: Context, date: LocalDate, queue: String): Day {
+    fun days(ctx: Context, date: LocalDate, queue: String): Pair<Day, Day> {
         val snapshot = prefs(ctx).all
+        return readDay(snapshot, date, queue) to readDay(snapshot, date.plusDays(1), queue)
+    }
+
+    private fun readDay(snapshot: Map<String, *>, date: LocalDate, queue: String): Day {
         val key = date.toString()
         val checked = snapshot["checked_$key"] as? Long ?: 0L
         val failed = snapshot["failed_$key"] == true

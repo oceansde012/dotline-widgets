@@ -20,6 +20,20 @@ private fun page(vararg blocks: String) =
     """<main><div class="post">${blocks.joinToString("<hr />")}</div></main>"""
 
 fun main(args: Array<String>) {
+    val afternoon = listOf(OutageWindow(840, 1020), OutageWindow(1260, 1380))
+    check(OutageSchedule.nextOutage(839, afternoon, null) == OutageTransition(840, 1020))
+    check(OutageSchedule.nextOutage(840, afternoon, null) == OutageTransition(840, 1020))
+    check(OutageSchedule.nextOutage(1020, afternoon, null) == OutageTransition(1260, 1380))
+    check(OutageSchedule.nextOutage(1380, afternoon, null) == null)
+    val late = listOf(OutageWindow(1380, 1440))
+    val early = listOf(OutageWindow(0, 90), OutageWindow(600, 720))
+    check(OutageSchedule.nextOutage(1400, late, early) == OutageTransition(1380, 1530))
+    check(OutageSchedule.nextOutage(1400, late, null) == OutageTransition(1380, null))
+    check(OutageSchedule.nextOutage(1400, late, emptyList()) == OutageTransition(1380, 1440))
+    check(OutageSchedule.nextOutage(1000, null, early) == OutageTransition(1440, 1530))
+    check(OutageSchedule.nextOutage(1000, emptyList(), late) == OutageTransition(2820, null))
+    check(OutageSchedule.nextOutage(1400, late, listOf(OutageWindow(0, 1440))) == OutageTransition(1380, null))
+
     val heading = "На 9 листопада будуть застосовані графіки погодинних відключень (ГПВ)"
     val update = "Оновлено графік погодинних відключень на 09.11.2026"
     val older = schedule("Графік погодинних відключень на 8 листопада", "00:00-02:00")

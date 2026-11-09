@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="outage_widget_label">Відключення</string>
-    <string name="outage_widget_desc">Графік відключень на завтра за підчергою</string>
+    <string name="outage_widget_desc">Коли за графіком вимкнуть і повернуть світло</string>
     <string name="outage_title_date">ЗАВТРА · %1$s</string>
     <string name="outage_queue">Підчерга %1$s</string>
     <string name="outage_choose">Вибери свою підчергу</string>
@@ -17,9 +17,23 @@
     <string name="outage_find_queue">Знайти підчергу за адресою</string>
     <string name="outage_source">Офіційний графік</string>
     <string name="outage_panel_title">Погодинні відключення · Хмельницькобленерго</string>
-    <string name="outage_compact_saved">КЕШ</string>
+    <string name="outage_compact_saved">ЗБЕР.</string>
     <string name="outage_short_none">Без відключень</string>
     <string name="outage_short_unavailable">Недоступно</string>
     <string name="outage_short_unpublished">Графіка ще нема</string>
     <string name="outage_short_waiting">Очікуємо дані</string>
+    <string name="outage_widget_heading">ГРАФІК · %1$s · ПІДЧЕРГА %2$s</string>
+    <string name="outage_widget_saved">ЗБЕРЕЖЕНО · %1$s · ПІДЧЕРГА %2$s</string>
+    <string name="outage_off_label">БЕЗ СВІТЛА З</string>
+    <string name="outage_on_label">СВІТЛО З</string>
+    <string name="outage_time_unknown">Невідомо</string>
+    <string name="outage_off_short">Без %1$s</string>
+    <string name="outage_on_short">Є з %1$s</string>
+    <string name="outage_on_unknown">Час повернення світла невідомий</string>
+    <string name="outage_on_unknown_short">Час невідомий</string>
+    <string name="outage_off_ranges">Без світла %1$s</string>
+    <string name="outage_no_more_known">Більше відключень до кінця завтра немає</string>
+    <string name="outage_no_more_today">До кінця дня без відключень</string>
+    <string name="outage_no_tomorrow">Завтра без відключень</string>
+    <string name="outage_only_tomorrow">СЬОГОДНІ БЕЗ ДАНИХ · ЗАВТРА %1$s · %2$s</string>
 </resources>
