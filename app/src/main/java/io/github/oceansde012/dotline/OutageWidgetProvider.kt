@@ -62,7 +62,7 @@ class OutageWidgetProvider : AppWidgetProvider() {
             val ids = manager.getAppWidgetIds(ComponentName(ctx, OutageWidgetProvider::class.java))
             for (id in ids) {
                 try {
-                    val size = WidgetSize.of(ctx, manager, id, 290f, 145f)
+                    val size = WidgetSize.of(ctx, manager, id, 150f, 62f)
                     manager.updateAppWidget(id, buildPreview(ctx, size.width, size.height))
                 } catch (e: Exception) {
                     Log.w("OutageWidget", "Could not update widget", e)
@@ -72,12 +72,13 @@ class OutageWidgetProvider : AppWidgetProvider() {
 
         internal fun dateLabel(date: LocalDate): String = date.format(DateTimeFormatter.ofPattern("dd.MM", Locale.ROOT))
 
-        internal fun status(ctx: Context, day: OutageRepo.Day): String = when {
-            day.windows?.isEmpty() == true -> ctx.getString(R.string.outage_none)
+        internal fun status(ctx: Context, day: OutageRepo.Day, compact: Boolean = false): String = when {
+            day.windows?.isEmpty() == true -> ctx.getString(if (compact) R.string.outage_short_none else R.string.outage_none)
             day.windows != null -> day.windows.joinToString(" · ") { it.label() }
-            day.failed || (day.checkedAt != 0L && day.stale) -> ctx.getString(R.string.outage_unavailable)
-            day.checkedAt == 0L -> ctx.getString(R.string.outage_waiting)
-            else -> ctx.getString(R.string.outage_unpublished)
+            day.failed || (day.checkedAt != 0L && day.stale) ->
+                ctx.getString(if (compact) R.string.outage_short_unavailable else R.string.outage_unavailable)
+            day.checkedAt == 0L -> ctx.getString(if (compact) R.string.outage_short_waiting else R.string.outage_waiting)
+            else -> ctx.getString(if (compact) R.string.outage_short_unpublished else R.string.outage_unpublished)
         }
 
         internal fun checkedLabel(ctx: Context, day: OutageRepo.Day): String {
@@ -99,12 +100,21 @@ class OutageWidgetProvider : AppWidgetProvider() {
 
             val pad = Tile.pad(h)
             val width = (w - 2 * pad).coerceAtLeast(96f)
-            val headline = ctx.getString(R.string.outage_title_date, dateLabel(date))
+            val dateText = dateLabel(date)
+            val headline = ctx.getString(R.string.outage_title_date, dateText)
+            val group = queue?.let { ctx.getString(R.string.outage_queue, it) }.orEmpty()
+            val info = if (day == null) ctx.getString(R.string.outage_choose) else status(ctx, day)
+            val checkedText = day?.takeIf { it.checkedAt > 0L && (it.windows != null || !it.stale) }?.let { checkedLabel(ctx, it) }
+            rv.setContentDescription(R.id.zone, listOfNotNull(headline, group, info, checkedText).filter { it.isNotEmpty() }.joinToString(". "))
+
+            if (h < 100f) {
+                renderCompact(ctx, rv, h, pad, width, dateText, headline, queue, day)
+                return rv
+            }
+
             val header = rv.label(ctx, R.id.outage_header, headline, 12f, Nd.FG, width, medium = true, minSizeDp = 9f)
             rv.margins(R.id.outage_header, start = pad, top = pad)
 
-            val group = queue?.let { ctx.getString(R.string.outage_queue, it) }.orEmpty()
-            val info = if (day == null) ctx.getString(R.string.outage_choose) else status(ctx, day)
             val groupTop = pad + header.hDp + 5f
             val groupHeight = if (group.isNotEmpty()) {
                 val art = rv.label(ctx, R.id.outage_group, group, 11f, Nd.DIM, width - 12f, minSizeDp = 9f)
@@ -118,7 +128,6 @@ class OutageWidgetProvider : AppWidgetProvider() {
             rv.setViewVisibility(R.id.outage_dot, if (hasWindows) View.VISIBLE else View.GONE)
             rv.margins(R.id.outage_dot, top = groupTop + 3f, end = pad)
 
-            val checkedText = day?.takeIf { it.checkedAt > 0L && (it.windows != null || !it.stale) }?.let { checkedLabel(ctx, it) }
             val footHeight = if (checkedText != null) {
                 val checked = rv.label(ctx, R.id.outage_checked, checkedText, 9f, Nd.DIM, width, minSizeDp = 8f)
                 rv.margins(R.id.outage_checked, start = pad, top = h - pad - checked.hDp)
@@ -141,8 +150,43 @@ class OutageWidgetProvider : AppWidgetProvider() {
             val infoHeight = h - pad - footHeight - infoTop
             rv.label(ctx, R.id.outage_ranges, info, 12f, Nd.FG, width, maxLines = if (infoHeight >= 27f) 2 else 1, minSizeDp = 9f)
             rv.margins(R.id.outage_ranges, start = pad, top = infoTop)
-            rv.setContentDescription(R.id.zone, listOfNotNull(headline, group, info, checkedText).filter { it.isNotEmpty() }.joinToString(". "))
             return rv
+        }
+
+        private fun renderCompact(
+            ctx: Context, rv: RemoteViews, h: Float, pad: Float, width: Float,
+            date: String, headline: String, queue: String?, day: OutageRepo.Day?,
+        ) {
+            rv.setViewVisibility(R.id.outage_group, View.GONE)
+            rv.setViewVisibility(R.id.outage_timeline, View.GONE)
+            rv.setViewVisibility(R.id.outage_checked, View.GONE)
+            rv.setViewVisibility(R.id.outage_dot, View.GONE)
+            val saved = day?.takeIf { it.windows != null && it.stale }?.let { ctx.getString(R.string.outage_compact_saved) }
+            val dateLabel = if (width < 176f) date else headline
+            val title = listOfNotNull(dateLabel, queue).joinToString(" · ") + (saved?.let { " $it" } ?: "")
+            val heading = rv.label(ctx, R.id.outage_header, title, 11f, Nd.DIM, width, medium = true, minSizeDp = 8.5f)
+            val windows = day?.windows
+            val shortInfo = if (windows.isNullOrEmpty()) {
+                if (day == null) ctx.getString(R.string.outage_choose_button) else status(ctx, day, compact = true)
+            } else {
+                // Keep complete intervals visible. A count points to the rest in the app.
+                val visible = when {
+                    width >= 280f -> 3
+                    width >= 190f -> 2
+                    else -> 1
+                }
+                val extra = windows.size - visible
+                val labels = windows.take(visible).joinToString(" · ") { it.label() }
+                labels + when {
+                    extra > 99 -> " +…"
+                    extra > 0 -> " +$extra"
+                    else -> ""
+                }
+            }
+            val hours = rv.label(ctx, R.id.outage_ranges, shortInfo, 12f, Nd.FG, width, minSizeDp = 8.5f)
+            val top = ((h - heading.hDp - hours.hDp - 3f) / 2f).coerceAtLeast(0f)
+            rv.margins(R.id.outage_header, start = pad, top = top)
+            rv.margins(R.id.outage_ranges, start = pad, top = top + heading.hDp + 3f)
         }
 
         private fun timeline(ctx: Context, width: Float, windows: List<OutageWindow>): Bitmap {

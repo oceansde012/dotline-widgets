@@ -17,4 +17,9 @@
     <string name="outage_find_queue">Найти группу по адресу</string>
     <string name="outage_source">Официальный график</string>
     <string name="outage_panel_title">Почасовые отключения · Хмельницкоблэнерго</string>
+    <string name="outage_compact_saved">КЭШ</string>
+    <string name="outage_short_none">Отключений нет</string>
+    <string name="outage_short_unavailable">Недоступно</string>
+    <string name="outage_short_unpublished">Графика ещё нет</string>
+    <string name="outage_short_waiting">Ждём данные</string>
 </resources>

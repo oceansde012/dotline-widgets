@@ -17,4 +17,9 @@
     <string name="outage_find_queue">Find your group by address</string>
     <string name="outage_source">Official schedule</string>
     <string name="outage_panel_title">Hourly outages · Khmelnytskoblenergo</string>
+    <string name="outage_compact_saved">OLD</string>
+    <string name="outage_short_none">No outages</string>
+    <string name="outage_short_unavailable">Unavailable</string>
+    <string name="outage_short_unpublished">No schedule yet</string>
+    <string name="outage_short_waiting">Awaiting data</string>
 </resources>

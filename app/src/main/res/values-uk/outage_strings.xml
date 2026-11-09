@@ -12,9 +12,14 @@
     <string name="outage_checked_at">Перевірено %1$s</string>
     <string name="outage_saved_at">Збережено · %1$s</string>
     <string name="outage_today_date">СЬОГОДНІ · %1$s</string>
-    <string name="outage_choose_button">Вибрати підчергу</string>
+    <string name="outage_choose_button">Обери підчергу</string>
     <string name="outage_refresh_button">Оновити графік</string>
     <string name="outage_find_queue">Знайти підчергу за адресою</string>
     <string name="outage_source">Офіційний графік</string>
     <string name="outage_panel_title">Погодинні відключення · Хмельницькобленерго</string>
+    <string name="outage_compact_saved">КЕШ</string>
+    <string name="outage_short_none">Без відключень</string>
+    <string name="outage_short_unavailable">Недоступно</string>
+    <string name="outage_short_unpublished">Графіка ще нема</string>
+    <string name="outage_short_waiting">Очікуємо дані</string>
 </resources>

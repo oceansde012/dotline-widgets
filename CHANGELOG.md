@@ -4,6 +4,9 @@ Curated by hand, no commit log. The release workflow adds the section `## 1.0.<c
 to the release body; when there is none it uses `## latest`.
 
 ## latest
+- The Outages widget fits in 2×1 by default. Resize it to show more hours or make it taller to see the timeline.
+
+## 1.0.119
 - Add a 4×2 Outages widget with tomorrow’s Khmelnytskoblenergo schedule for your selected group. Open the app to see today and tomorrow or check for schedule revisions.
 - Fix the update confirmation on Android 12 and 12L. Tapping the update notification opens the system confirmation dialog.
 
