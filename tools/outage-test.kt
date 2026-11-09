@@ -39,6 +39,7 @@ fun main(args: Array<String>) {
         page(schedule(update, "10:00-13:00; 21:00"), first),
         page("<p>$update</p><p>Підчерга 1.1 – 10:00-13:00.</p>", first),
         page(schedule(update, "10:00-13:00") + "<p>Підчерга 1.1 – 14:00-18:00.</p>"),
+        page("<p>Графік ГПВ на 9 листопада діятиме. Додаткових обмежень не планується.</p>"),
         "<html><h1>Access denied</h1></html>",
     )) check(runCatching { OutageSchedule.parse(broken, dates) }.isFailure)
     check(OutageSchedule.date(Instant.parse("2026-11-08T21:59:59Z")) == today)
