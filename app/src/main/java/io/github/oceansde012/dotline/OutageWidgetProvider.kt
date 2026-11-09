@@ -118,8 +118,9 @@ class OutageWidgetProvider : AppWidgetProvider() {
             rv.setViewVisibility(R.id.outage_dot, if (hasWindows) View.VISIBLE else View.GONE)
             rv.margins(R.id.outage_dot, top = groupTop + 3f, end = pad)
 
-            val footHeight = if (day != null && day.checkedAt > 0L && (day.windows != null || !day.stale)) {
-                val checked = rv.label(ctx, R.id.outage_checked, checkedLabel(ctx, day), 9f, Nd.DIM, width, minSizeDp = 8f)
+            val checkedText = day?.takeIf { it.checkedAt > 0L && (it.windows != null || !it.stale) }?.let { checkedLabel(ctx, it) }
+            val footHeight = if (checkedText != null) {
+                val checked = rv.label(ctx, R.id.outage_checked, checkedText, 9f, Nd.DIM, width, minSizeDp = 8f)
                 rv.margins(R.id.outage_checked, start = pad, top = h - pad - checked.hDp)
                 checked.hDp + 4f
             } else {
@@ -140,7 +141,7 @@ class OutageWidgetProvider : AppWidgetProvider() {
             val infoHeight = h - pad - footHeight - infoTop
             rv.label(ctx, R.id.outage_ranges, info, 12f, Nd.FG, width, maxLines = if (infoHeight >= 27f) 2 else 1, minSizeDp = 9f)
             rv.margins(R.id.outage_ranges, start = pad, top = infoTop)
-            rv.setContentDescription(R.id.zone, listOf(headline, group, info).filter { it.isNotEmpty() }.joinToString(". "))
+            rv.setContentDescription(R.id.zone, listOfNotNull(headline, group, info, checkedText).filter { it.isNotEmpty() }.joinToString(". "))
             return rv
         }
 

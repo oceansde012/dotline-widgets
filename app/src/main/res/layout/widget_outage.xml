@@ -14,11 +14,11 @@
         android:textColor="@color/nd_fg"
         android:textSize="13sp" />
 
-    <ImageView android:id="@+id/outage_header" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-    <ImageView android:id="@+id/outage_group" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    <ImageView android:id="@+id/outage_header" android:layout_width="wrap_content" android:layout_height="wrap_content" android:importantForAccessibility="no" />
+    <ImageView android:id="@+id/outage_group" android:layout_width="wrap_content" android:layout_height="wrap_content" android:importantForAccessibility="no" />
     <ImageView android:id="@+id/outage_timeline" android:layout_width="wrap_content" android:layout_height="wrap_content" android:importantForAccessibility="no" />
-    <ImageView android:id="@+id/outage_ranges" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-    <ImageView android:id="@+id/outage_checked" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    <ImageView android:id="@+id/outage_ranges" android:layout_width="wrap_content" android:layout_height="wrap_content" android:importantForAccessibility="no" />
+    <ImageView android:id="@+id/outage_checked" android:layout_width="wrap_content" android:layout_height="wrap_content" android:importantForAccessibility="no" />
 
     <ImageView
         android:id="@+id/outage_dot"
